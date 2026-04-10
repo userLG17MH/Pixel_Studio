@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel ↔ Excel Converter</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --accent: #7c6af7;
+    --accent2: #5de8c1;
+    --text: #f0eeff;
+    --muted: #8884a8;
+    --danger: #f07070;
+    --success: #5de8c1;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1a1830 0%, #0d0d0f 100%);
+    border-bottom: 1px solid var(--border2);
+    padding: 2rem 2.5rem 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .header-title {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #c4bfff 0%, #7c6af7 40%, #5de8c1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .header-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 0.4rem;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
+
+  .tab-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .tab-btn:hover:not(.active) {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .main {
+    padding: 2rem 2.5rem;
+    max-width: 1100px;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    position: relative;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.06);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .drop-label {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  .drop-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .options-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .opt-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+  }
+
+  .opt-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .opt-group select, .opt-group input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 5px;
+    outline: none;
+  }
+
+  .opt-group select:focus, .opt-group input:focus {
+    border-color: var(--accent);
+  }
+
+  .preview-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .preview-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .preview-head {
+    padding: 0.6rem 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview-body {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+  }
+
+  #img-preview {
+    max-width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    display: none;
+    border-radius: 4px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .stat-val {
+    font-family: var(--font-head);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+
+  .stat-key {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.1rem;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    padding: 0.65rem 1.5rem;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #9588ff; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .progress-wrap {
+    margin-top: 1.25rem;
+    display: none;
+  }
+
+  .progress-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar-bg {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  .log-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1.25rem;
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+    color: var(--muted);
+    display: none;
+  }
+
+  .log-line { margin-bottom: 0.2rem; }
+  .log-line.ok { color: var(--success); }
+  .log-line.err { color: var(--danger); }
+
+  /* Excel to image panel */
+  .excel-drop {
+    border: 1.5px dashed var(--border2);
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    position: relative;
+  }
+
+  .excel-drop:hover, .excel-drop.drag-over {
+    border-color: var(--accent2);
+    background: rgba(93,232,193,0.04);
+  }
+
+  .excel-drop input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .result-canvas-wrap {
+    margin-top: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .result-canvas-head {
+    padding: 0.6rem 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #result-canvas {
+    display: block;
+    max-width: 100%;
+    margin: 1rem auto;
+    image-rendering: pixelated;
+  }
+
+  .checkerboard {
+    background-image: linear-gradient(45deg, #1a1a22 25%, transparent 25%),
+                      linear-gradient(-45deg, #1a1a22 25%, transparent 25%),
+                      linear-gradient(45deg, transparent 75%, #1a1a22 75%),
+                      linear-gradient(-45deg, transparent 75%, #1a1a22 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    padding: 1rem;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-accent { background: rgba(124,106,247,0.2); color: var(--accent); }
+  .badge-success { background: rgba(93,232,193,0.15); color: var(--success); }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .empty-state .big { font-size: 2rem; margin-bottom: 0.5rem; }
+
+  canvas#hidden-canvas { display: none; }
+
+  @media (max-width: 640px) {
+    .header { padding: 1.25rem 1.25rem 1rem; }
+    .main { padding: 1.25rem; }
+    .preview-area { grid-template-columns: 1fr; }
+    .tab-bar { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Pixel ↔ Excel</div>
+    <div class="header-sub">Image pixel extractor &amp; reconstructor</div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('img2xls')">Image → Excel</button>
+    <button class="tab-btn" onclick="switchTab('xls2img')">Excel → Image</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ========== IMAGE TO EXCEL ========== -->
+  <div id="panel-img2xls" class="panel active">
+
+    <div class="drop-zone" id="drop-zone" ondragover="onDragOver(event,'drop-zone')" ondragleave="onDragLeave('drop-zone')" ondrop="onDrop(event)">
+      <input type="file" id="img-input" accept="image/*" onchange="onImgSelect(event)">
+      <span class="drop-icon">🖼️</span>
+      <div class="drop-label">Drop image or click to browse</div>
+      <div class="drop-hint">PNG · JPG · JPEG · GIF · BMP · WEBP · SVG — any format your browser can decode</div>
+    </div>
+
+    <div class="options-row">
+      <div class="opt-group">
+        <div class="opt-label">Sampling mode</div>
+        <select id="sampling">
+          <option value="every">Every pixel (full accuracy)</option>
+          <option value="resize">Resize to max dimension</option>
+        </select>
+      </div>
+      <div class="opt-group" id="maxdim-wrap">
+        <div class="opt-label">Max dimension (px)</div>
+        <input type="number" id="maxdim" value="100" min="10" max="2000">
+      </div>
+      <div class="opt-group">
+        <div class="opt-label">Include alpha channel</div>
+        <select id="include-alpha">
+          <option value="no">No (RGB only)</option>
+          <option value="yes">Yes (RGBA)</option>
+        </select>
+      </div>
+      <div class="opt-group">
+        <div class="opt-label">Color cell fill</div>
+        <select id="color-fill">
+          <option value="yes">Yes — fill cells with pixel color</option>
+          <option value="no">No — data only</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="preview-area" id="preview-area" style="display:none">
+      <div class="preview-box">
+        <div class="preview-head">Original image</div>
+        <div class="preview-body">
+          <img id="img-preview" alt="preview">
+        </div>
+      </div>
+      <div class="preview-box">
+        <div class="preview-head">Export stats</div>
+        <div class="preview-body">
+          <div class="stats-grid" id="stats-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-convert" onclick="convertToExcel()" disabled>
+        <span>⚡</span> Convert to Excel
+      </button>
+      <button class="btn btn-secondary" id="btn-clear-img" onclick="clearImg()" style="display:none">
+        ✕ Clear
+      </button>
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-text">Processing...</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+    </div>
+
+    <div class="log-box" id="log-box"></div>
+  </div>
+
+  <!-- ========== EXCEL TO IMAGE ========== -->
+  <div id="panel-xls2img" class="panel">
+
+    <div class="excel-drop" id="xls-drop" ondragover="onDragOver(event,'xls-drop')" ondragleave="onDragLeave('xls-drop')" ondrop="onXlsDrop(event)">
+      <input type="file" id="xls-input" accept=".xlsx,.xls,.csv" onchange="onXlsSelect(event)">
+      <span class="drop-icon">📊</span>
+      <div class="drop-label">Drop Excel file (.xlsx / .xls / .csv)</div>
+      <div class="drop-hint">Must contain columns: X, Y, R, G, B (exported from this tool or compatible format)</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-rebuild" onclick="rebuildImage()" disabled>
+        <span>🎨</span> Rebuild Image
+      </button>
+      <button class="btn btn-secondary" id="btn-dl-png" onclick="downloadPng()" disabled>↓ Download PNG</button>
+      <button class="btn btn-secondary" id="btn-dl-jpg" onclick="downloadJpg()" disabled>↓ Download JPG</button>
+      <button class="btn btn-secondary" id="btn-clear-xls" onclick="clearXls()" style="display:none">✕ Clear</button>
+    </div>
+
+    <div class="progress-wrap" id="xls-progress-wrap">
+      <div class="progress-label">
+        <span id="xls-progress-text">Reading...</span>
+        <span id="xls-progress-pct">0%</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="xls-progress-fill"></div></div>
+    </div>
+
+    <div class="result-canvas-wrap" id="result-canvas-wrap">
+      <div class="result-canvas-head">
+        <span>Reconstructed image</span>
+        <span id="canvas-size-badge" class="badge badge-success"></span>
+      </div>
+      <div class="checkerboard">
+        <canvas id="result-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="log-box" id="xls-log-box"></div>
+  </div>
+
+</div>
+
+<canvas id="hidden-canvas"></canvas>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// ── Tab switching ──────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  $('panel-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── Drag events ────────────────────────────────────────────
+function onDragOver(e, id) { e.preventDefault(); $(id).classList.add('drag-over'); }
+function onDragLeave(id) { $(id).classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault(); $('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadImageFile(file);
+}
+function onXlsDrop(e) {
+  e.preventDefault(); $('xls-drop').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadXlsFile(file);
+}
+
+// ── Sampling mode toggle ───────────────────────────────────
+$('sampling').addEventListener('change', () => {
+  $('maxdim-wrap').style.opacity = $('sampling').value === 'resize' ? '1' : '0.3';
+});
+$('maxdim-wrap').style.opacity = '0.3';
+
+// ── Image file handling ────────────────────────────────────
+let imgData = null;  // {data, width, height, sampledW, sampledH}
+
+function onImgSelect(e) { if (e.target.files[0]) loadImageFile(e.target.files[0]); }
+
+function loadImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      // show preview
+      $('img-preview').src = ev.target.result;
+      $('img-preview').style.display = 'block';
+      $('preview-area').style.display = 'grid';
+      $('btn-clear-img').style.display = '';
+      $('btn-convert').disabled = false;
+
+      // store for conversion
+      imgData = { img, file, origW: img.naturalWidth, origH: img.naturalHeight };
+      updateStats();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateStats() {
+  if (!imgData) return;
+  const { origW, origH } = imgData;
+  const { sampledW, sampledH } = getSampledDims(origW, origH);
+  const total = sampledW * sampledH;
+  $('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${origW}×${origH}</div><div class="stat-key">Original size</div></div>
+    <div class="stat-card"><div class="stat-val">${sampledW}×${sampledH}</div><div class="stat-key">Sampled size</div></div>
+    <div class="stat-card"><div class="stat-val">${total.toLocaleString()}</div><div class="stat-key">Total pixels</div></div>
+    <div class="stat-card"><div class="stat-val">${estimateRows(total)}</div><div class="stat-key">Excel rows</div></div>
+  `;
+}
+
+function estimateRows(n) {
+  if (n > 1000000) return '>1M ⚠️';
+  if (n > 100000) return n.toLocaleString();
+  return n.toLocaleString();
+}
+
+$('sampling').addEventListener('change', updateStats);
+$('maxdim').addEventListener('input', updateStats);
+
+function getSampledDims(w, h) {
+  if ($('sampling').value === 'every') return { sampledW: w, sampledH: h };
+  const maxd = Math.max(1, parseInt($('maxdim').value) || 100);
+  const ratio = Math.min(maxd / w, maxd / h, 1);
+  return { sampledW: Math.round(w * ratio), sampledH: Math.round(h * ratio) };
+}
+
+function clearImg() {
+  imgData = null;
+  $('img-preview').style.display = 'none';
+  $('img-preview').src = '';
+  $('preview-area').style.display = 'none';
+  $('btn-convert').disabled = true;
+  $('btn-clear-img').style.display = 'none';
+  $('img-input').value = '';
+  $('progress-wrap').style.display = 'none';
+  $('log-box').style.display = 'none';
+  $('log-box').innerHTML = '';
+}
+
+// ── Image → Excel conversion ───────────────────────────────
+function log(msg, type='') {
+  const el = $('log-box');
+  el.style.display = 'block';
+  el.innerHTML += `<div class="log-line ${type}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setProgress(pct, label) {
+  $('progress-fill').style.width = pct + '%';
+  $('progress-pct').textContent = Math.round(pct) + '%';
+  if (label) $('progress-text').textContent = label;
+}
+
+async function convertToExcel() {
+  if (!imgData) return;
+  $('btn-convert').disabled = true;
+  $('progress-wrap').style.display = 'block';
+  $('log-box').innerHTML = '';
+  $('log-box').style.display = 'block';
+
+  await sleep(10);
+
+  const { img, file, origW, origH } = imgData;
+  const { sampledW, sampledH } = getSampledDims(origW, origH);
+  const total = sampledW * sampledH;
+
+  if (total > 500000) {
+    log(`⚠️ ${total.toLocaleString()} pixels — this may take a moment and produce a large file.`, '');
+  }
+
+  log(`Reading ${sampledW}×${sampledH} = ${total.toLocaleString()} pixels from "${file.name}"`, 'ok');
+  setProgress(5, 'Drawing canvas...');
+
+  const canvas = $('hidden-canvas');
+  canvas.width = sampledW;
+  canvas.height = sampledH;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, sampledW, sampledH);
+
+  setProgress(15, 'Reading pixel data...');
+  await sleep(10);
+
+  const imageData = ctx.getImageData(0, 0, sampledW, sampledH);
+  const px = imageData.data;
+  const includeAlpha = $('include-alpha').value === 'yes';
+  const colorFill = $('color-fill').value === 'yes';
+
+  log(`Building worksheet...`, 'ok');
+  setProgress(20, 'Building worksheet...');
+  await sleep(10);
+
+  // Build array of arrays for fast XLSX write
+  const header = includeAlpha
+    ? ['SL No.', 'X', 'Y', 'R', 'G', 'B', 'A', 'HEX', 'HEX_RGBA']
+    : ['SL No.', 'X', 'Y', 'R', 'G', 'B', 'HEX'];
+
+  const rows = [header];
+  let sl = 1;
+
+  const CHUNK = 5000;
+  for (let i = 0; i < total; i++) {
+    const idx = i * 4;
+    const r = px[idx], g = px[idx+1], b = px[idx+2], a = px[idx+3];
+    const x = i % sampledW;
+    const y = Math.floor(i / sampledW);
+    const hex = '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('').toUpperCase();
+
+    if (includeAlpha) {
+      const hexRgba = '#' + [r,g,b,a].map(v => v.toString(16).padStart(2,'0')).join('').toUpperCase();
+      rows.push([sl++, x, y, r, g, b, a, hex, hexRgba]);
+    } else {
+      rows.push([sl++, x, y, r, g, b, hex]);
+    }
+
+    if (i % CHUNK === 0 && i > 0) {
+      const pct = 20 + (i / total) * 55;
+      setProgress(pct, `Processing pixel ${i.toLocaleString()} / ${total.toLocaleString()}…`);
+      await sleep(0);
+    }
+  }
+
+  log(`${total.toLocaleString()} rows ready. Writing workbook...`, 'ok');
+  setProgress(75, 'Writing Excel workbook...');
+  await sleep(10);
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Column widths
+  const colW = [{ wch: 10 }, { wch: 7 }, { wch: 7 }, { wch: 6 }, { wch: 6 }, { wch: 6 }];
+  if (includeAlpha) colW.push({ wch: 6 });
+  colW.push({ wch: 10 });
+  if (includeAlpha) colW.push({ wch: 12 });
+  ws['!cols'] = colW;
+
+  // Apply cell fill colors (only feasible for small images due to xlsx limitations)
+  if (colorFill && total <= 50000) {
+    setProgress(80, 'Applying cell colors...');
+    await sleep(10);
+    const rCol = includeAlpha ? 3 : 3; // R is col D (index 3)
+    const gCol = 4, bCol = 5;
+    for (let i = 1; i <= total; i++) {
+      const row = rows[i];
+      const r2 = row[3], g2 = row[4], b2 = row[5];
+      const hexColor = [r2,g2,b2].map(v => v.toString(16).padStart(2,'0')).join('').toUpperCase();
+      const cellAddr = XLSX.utils.encode_cell({ r: i, c: 7 }); // HEX column
+      if (ws[cellAddr]) {
+        ws[cellAddr].s = {
+          fill: { patternType: 'solid', fgColor: { rgb: hexColor } },
+          font: { color: { rgb: luminance(r2,g2,b2) > 128 ? '000000' : 'FFFFFF' } }
+        };
+      }
+    }
+    if (total > 50000) log('⚠️ Cell fill colors skipped for files >50k rows (performance limit)', '');
+  } else if (colorFill && total > 50000) {
+    log('⚠️ Cell fill skipped (>50k rows). Data is 100% accurate.', '');
+  }
+
+  setProgress(90, 'Adding metadata sheet...');
+  await sleep(10);
+
+  // Metadata sheet
+  const meta = XLSX.utils.aoa_to_sheet([
+    ['Pixel Excel Export — Metadata'],
+    [],
+    ['Source file', file.name],
+    ['Original dimensions', `${origW} × ${origH}`],
+    ['Sampled dimensions', `${sampledW} × ${sampledH}`],
+    ['Total pixels', total],
+    ['Includes alpha', includeAlpha ? 'Yes' : 'No'],
+    ['Exported by', 'Pixel ↔ Excel Converter'],
+    ['Exported at', new Date().toISOString()],
+    [],
+    ['Column guide'],
+    ['SL No.', 'Sequential row number (1-based)'],
+    ['X', 'Horizontal position from left (0-based)'],
+    ['Y', 'Vertical position from top (0-based)'],
+    ['R', 'Red channel 0–255'],
+    ['G', 'Green channel 0–255'],
+    ['B', 'Blue channel 0–255'],
+    ...(includeAlpha ? [['A', 'Alpha channel 0–255 (255=opaque)']] : []),
+    ['HEX', '#RRGGBB hex color code'],
+    ...(includeAlpha ? [['HEX_RGBA', '#RRGGBBAA hex with alpha']] : []),
+  ]);
+  meta['!cols'] = [{ wch: 22 }, { wch: 40 }];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Pixels');
+  XLSX.utils.book_append_sheet(wb, meta, 'Metadata');
+
+  setProgress(95, 'Saving file...');
+  await sleep(10);
+
+  const safeName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]/gi, '_');
+  XLSX.writeFile(wb, `pixels_${safeName}_${sampledW}x${sampledH}.xlsx`);
+
+  setProgress(100, 'Done!');
+  log(`✅ Saved: pixels_${safeName}_${sampledW}x${sampledH}.xlsx`, 'ok');
+  $('btn-convert').disabled = false;
+}
+
+function luminance(r, g, b) { return 0.299*r + 0.587*g + 0.114*b; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Excel → Image ──────────────────────────────────────────
+let xlsPixels = null;
+
+function onXlsSelect(e) { if (e.target.files[0]) loadXlsFile(e.target.files[0]); }
+
+function xlsLog(msg, type='') {
+  const el = $('xls-log-box');
+  el.style.display = 'block';
+  el.innerHTML += `<div class="log-line ${type}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setXlsProgress(pct, label) {
+  $('xls-progress-fill').style.width = pct + '%';
+  $('xls-progress-pct').textContent = Math.round(pct) + '%';
+  if (label) $('xls-progress-text').textContent = label;
+}
+
+function loadXlsFile(file) {
+  xlsPixels = null;
+  $('btn-rebuild').disabled = true;
+  $('btn-dl-png').disabled = true;
+  $('btn-dl-jpg').disabled = true;
+  $('xls-log-box').innerHTML = '';
+  $('xls-log-box').style.display = 'block';
+  $('xls-progress-wrap').style.display = 'block';
+  $('btn-clear-xls').style.display = '';
+  setXlsProgress(5, 'Reading file...');
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      setXlsProgress(20, 'Parsing workbook...');
+      const data = new Uint8Array(ev.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+
+      // Find the Pixels sheet or first sheet
+      let sheetName = wb.SheetNames.includes('Pixels') ? 'Pixels' : wb.SheetNames[0];
+      xlsLog(`Reading sheet: "${sheetName}"`, 'ok');
+
+      setXlsProgress(35, 'Parsing rows...');
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (!rows.length) { xlsLog('No data rows found.', 'err'); return; }
+
+      // Flexible column detection (case-insensitive)
+      const sample = rows[0];
+      const keys = Object.keys(sample).map(k => k.trim());
+      const findCol = (...names) => keys.find(k => names.some(n => k.toUpperCase() === n.toUpperCase())) || null;
+
+      const colX = findCol('X', 'x_pos', 'x position', 'col');
+      const colY = findCol('Y', 'y_pos', 'y position', 'row');
+      const colR = findCol('R', 'red', 'r_value');
+      const colG = findCol('G', 'green', 'g_value');
+      const colB = findCol('B', 'blue', 'b_value');
+      const colHex = findCol('HEX', 'hex_color', 'color', 'colour');
+
+      xlsLog(`Columns detected — X:${colX} Y:${colY} R:${colR} G:${colG} B:${colB} HEX:${colHex}`, 'ok');
+
+      if (!colX || !colY) { xlsLog('❌ Could not find X and Y columns.', 'err'); return; }
+      if (!colR && !colG && !colB && !colHex) { xlsLog('❌ Could not find R,G,B or HEX columns.', 'err'); return; }
+
+      setXlsProgress(55, 'Mapping pixels...');
+
+      let maxX = 0, maxY = 0;
+      const pixels = [];
+
+      for (const row of rows) {
+        const x = parseInt(row[colX]);
+        const y = parseInt(row[colY]);
+        if (isNaN(x) || isNaN(y)) continue;
+
+        let r, g, b, a = 255;
+
+        if (colR && colG && colB) {
+          r = parseInt(row[colR]); g = parseInt(row[colG]); b = parseInt(row[colB]);
+          const colA = findCol('A','alpha','a_value');
+          if (colA) a = parseInt(row[colA]) || 255;
+        } else if (colHex) {
+          const hex = String(row[colHex]).replace('#','');
+          r = parseInt(hex.substring(0,2),16);
+          g = parseInt(hex.substring(2,4),16);
+          b = parseInt(hex.substring(4,6),16);
+          if (hex.length >= 8) a = parseInt(hex.substring(6,8),16);
+        }
+
+        if (isNaN(r)) r=0; if (isNaN(g)) g=0; if (isNaN(b)) b=0;
+        r = Math.max(0,Math.min(255,r)); g = Math.max(0,Math.min(255,g)); b = Math.max(0,Math.min(255,b));
+
+        pixels.push({ x, y, r, g, b, a });
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+
+      xlsLog(`${pixels.length.toLocaleString()} valid pixels found. Canvas: ${maxX+1}×${maxY+1}`, 'ok');
+      xlsPixels = { pixels, width: maxX+1, height: maxY+1 };
+      $('btn-rebuild').disabled = false;
+      setXlsProgress(100, 'Ready to rebuild');
+    } catch(err) {
+      xlsLog('❌ Error reading file: ' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function rebuildImage() {
+  if (!xlsPixels) return;
+  $('btn-rebuild').disabled = true;
+  setXlsProgress(0, 'Drawing...');
+  $('xls-progress-wrap').style.display = 'block';
+
+  const { pixels, width, height } = xlsPixels;
+  const canvas = $('result-canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, width, height);
+
+  const imgData2 = ctx.createImageData(width, height);
+  const d = imgData2.data;
+
+  const CHUNK = 10000;
+  for (let i = 0; i < pixels.length; i++) {
+    const { x, y, r, g, b, a } = pixels[i];
+    const idx = (y * width + x) * 4;
+    d[idx] = r; d[idx+1] = g; d[idx+2] = b; d[idx+3] = a;
+    if (i % CHUNK === 0 && i > 0) {
+      setXlsProgress((i / pixels.length) * 90, `Drawing pixel ${i.toLocaleString()}...`);
+      await sleep(0);
+    }
+  }
+
+  ctx.putImageData(imgData2, 0, 0);
+
+  // Scale display (cap at 600px wide)
+  const displayScale = Math.min(1, 600 / width);
+  canvas.style.width = Math.round(width * displayScale) + 'px';
+  canvas.style.height = Math.round(height * displayScale) + 'px';
+
+  $('canvas-size-badge').textContent = `${width} × ${height} px`;
+  $('result-canvas-wrap').style.display = 'block';
+  $('btn-dl-png').disabled = false;
+  $('btn-dl-jpg').disabled = false;
+  $('btn-rebuild').disabled = false;
+  setXlsProgress(100, 'Done!');
+  xlsLog(`✅ Image reconstructed: ${width}×${height} pixels`, 'ok');
+}
+
+function downloadPng() {
+  const canvas = $('result-canvas');
+  const a = document.createElement('a');
+  a.download = 'reconstructed_image.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function downloadJpg() {
+  const canvas = $('result-canvas');
+  const a = document.createElement('a');
+  a.download = 'reconstructed_image.jpg';
+  a.href = canvas.toDataURL('image/jpeg', 0.97);
+  a.click();
+}
+
+function clearXls() {
+  xlsPixels = null;
+  $('xls-input').value = '';
+  $('xls-log-box').innerHTML = '';
+  $('xls-log-box').style.display = 'none';
+  $('xls-progress-wrap').style.display = 'none';
+  $('result-canvas-wrap').style.display = 'none';
+  $('btn-rebuild').disabled = true;
+  $('btn-dl-png').disabled = true;
+  $('btn-dl-jpg').disabled = true;
+  $('btn-clear-xls').style.display = 'none';
+}
+</script>
+</body>
+</html>

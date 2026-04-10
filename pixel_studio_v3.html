@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Studio v3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090c;--s1:#111116;--s2:#18181f;--s3:#202029;--s4:#28282f;
+  --bd:rgba(255,255,255,0.07);--bd2:rgba(255,255,255,0.13);--bd3:rgba(255,255,255,0.24);
+  --a1:#e8ff47;--a2:#ff6b47;--a3:#47d9ff;--a4:#b847ff;--a5:#47ff9c;
+  --text:#f4f4f0;--muted:#7a7a92;--muted2:#50505f;
+  --mono:'Space Mono',monospace;--head:'Syne',sans-serif;
+  --sb:320px;   /* sidebar width */
+  --fs:15px;    /* base font */
+  --hdr:68px;
+}
+html{font-size:var(--fs);scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden;line-height:1.5}
+
+/* ── HEADER ── */
+.hdr{height:var(--hdr);padding:0 2rem;border-bottom:1px solid var(--bd2);
+  display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;
+  background:linear-gradient(180deg,#0f0f1c 0%,var(--bg) 100%);flex-shrink:0;position:sticky;top:0;z-index:100}
+.logo{font-family:var(--head);font-size:1.75rem;font-weight:900;letter-spacing:-0.04em;color:var(--a1);line-height:1}
+.logo sup{font-size:0.55rem;letter-spacing:0.1em;color:var(--a3);vertical-align:super;font-weight:700}
+.tagline{font-size:0.62rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-top:0.15rem}
+.badge{display:inline-flex;align-items:center;gap:0.35rem;padding:0.22rem 0.65rem;
+  border-radius:3px;background:rgba(232,255,71,0.1);border:1px solid rgba(232,255,71,0.28);
+  font-size:0.62rem;letter-spacing:0.1em;color:var(--a1);text-transform:uppercase;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--a1);flex-shrink:0;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.tabs{display:flex;gap:0.5rem;margin-left:auto}
+.tab{font-family:var(--mono);font-size:0.78rem;padding:0.48rem 1.1rem;
+  border-radius:5px;border:1px solid var(--bd2);background:transparent;color:var(--muted);
+  cursor:pointer;letter-spacing:0.05em;transition:all 0.12s;white-space:nowrap}
+.tab.on{background:var(--a1);border-color:var(--a1);color:#09090c;font-weight:700}
+.tab:hover:not(.on){border-color:var(--bd3);color:var(--text)}
+
+/* ── LAYOUT ── */
+.wrap{display:grid;grid-template-columns:var(--sb) 1fr;height:calc(100vh - var(--hdr));overflow:hidden}
+.sidebar{border-right:1px solid var(--bd);background:var(--s1);padding:1.1rem;
+  display:flex;flex-direction:column;gap:0.9rem;overflow-y:auto;height:100%;
+  scrollbar-width:thin;scrollbar-color:var(--s3) transparent}
+.content{padding:1.4rem;overflow-y:auto;height:100%}
+
+/* panels */
+.panel{display:none}.panel.on{display:contents}
+
+/* ── SECTION LABEL ── */
+.slbl{font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);
+  padding-bottom:0.38rem;border-bottom:1px solid var(--bd);margin-bottom:0.45rem;display:flex;align-items:center;gap:0.5rem}
+.slbl-num{display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;border-radius:50%;background:var(--s3);font-size:0.55rem;color:var(--a1);font-weight:700;flex-shrink:0}
+
+/* ── DROP ZONE ── */
+.dz{border:1.5px dashed var(--bd2);border-radius:8px;padding:1.6rem 1rem;
+  text-align:center;cursor:pointer;transition:all 0.14s;background:var(--s2);position:relative;overflow:hidden}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz:hover,.dz.over{border-color:var(--a1);background:rgba(232,255,71,0.04)}
+.dz.cyan{border-color:rgba(71,217,255,0.3)}
+.dz.cyan:hover,.dz.cyan.over{border-color:var(--a3);background:rgba(71,217,255,0.04)}
+.dz-ico{font-size:1.9rem;margin-bottom:0.5rem;display:block}
+.dz-t{font-family:var(--head);font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:0.2rem}
+.dz-h{font-size:0.62rem;color:var(--muted);line-height:1.6}
+.dz-h b{color:var(--a3)}
+
+/* ── CONTROLS ── */
+.cg{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:0.8rem}
+.cr{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.55rem}
+.cr:last-child{margin-bottom:0}
+.ck{font-size:0.68rem;color:var(--muted)}
+select,input[type=number]{font-family:var(--mono);font-size:0.72rem;background:var(--s3);
+  border:1px solid var(--bd2);color:var(--text);border-radius:4px;outline:none;transition:border-color 0.12s;padding:0.32rem 0.5rem}
+select{cursor:pointer}
+input[type=number]{width:72px;text-align:right}
+select:focus,input:focus{border-color:var(--a1)}
+input[type=range]{width:100%;accent-color:var(--a1);cursor:pointer;margin-top:0.3rem}
+/* toggle */
+.tog{position:relative;width:34px;height:18px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.ts{position:absolute;inset:0;border-radius:18px;cursor:pointer;background:var(--s3);border:1px solid var(--bd2);transition:0.14s}
+.ts::before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;border-radius:50%;background:var(--muted);transition:0.14s}
+.tog input:checked~.ts{background:var(--a1);border-color:var(--a1)}
+.tog input:checked~.ts::before{transform:translateX(16px);background:#09090c}
+
+/* ── MODE CARDS ── */
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem}
+.mc{padding:0.6rem;border-radius:5px;border:1px solid var(--bd);background:var(--s3);cursor:pointer;transition:all 0.12s;text-align:center}
+.mc:hover{border-color:var(--bd3)}.mc.sel{border-color:var(--a1);background:rgba(232,255,71,0.06)}
+.mc input{display:none}
+.mc-n{font-size:0.7rem;font-weight:700;color:var(--text)}
+.mc-d{font-size:0.58rem;color:var(--muted);margin-top:0.1rem}
+
+/* ── BUTTONS ── */
+.btn{font-family:var(--mono);font-size:0.74rem;padding:0.58rem 1rem;
+  border-radius:5px;border:none;cursor:pointer;letter-spacing:0.04em;transition:all 0.12s;
+  display:flex;align-items:center;justify-content:center;gap:0.4rem;width:100%;line-height:1}
+.bp{background:var(--a1);color:#09090c;font-weight:700}
+.bp:hover:not(:disabled){background:#f5ff6e;transform:translateY(-1px)}
+.bp:active:not(:disabled){transform:none}
+.bg_{background:transparent;color:var(--text);border:1px solid var(--bd2)}
+.bg_:hover:not(:disabled){border-color:var(--bd3);background:var(--s2)}
+.bc{background:rgba(71,217,255,0.1);color:var(--a3);border:1px solid rgba(71,217,255,0.25)}
+.bc:hover:not(:disabled){background:rgba(71,217,255,0.18)}
+.bv{background:rgba(184,71,255,0.1);color:var(--a4);border:1px solid rgba(184,71,255,0.25)}
+.bv:hover:not(:disabled){background:rgba(184,71,255,0.18)}
+.br{background:rgba(255,107,71,0.1);color:var(--a2);border:1px solid rgba(255,107,71,0.25)}
+.br:hover:not(:disabled){background:rgba(255,107,71,0.18)}
+.bg5{background:rgba(71,255,156,0.1);color:var(--a5);border:1px solid rgba(71,255,156,0.25)}
+.bg5:hover:not(:disabled){background:rgba(71,255,156,0.18)}
+.btn:disabled{opacity:0.3;cursor:not-allowed;transform:none!important}
+.eg{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem}
+.eg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.4rem}
+.bg2{display:flex;flex-direction:column;gap:0.45rem}
+
+/* ── PROGRESS ── */
+.pw{margin-top:0.7rem;display:none}
+.ph{display:flex;justify-content:space-between;font-size:0.62rem;color:var(--muted);margin-bottom:0.32rem}
+.pb{height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.pf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--a1),var(--a3));width:0%;transition:width 0.15s}
+/* cancel btn inline */
+.cancel-row{display:none;margin-top:0.4rem}
+.cancel-btn{font-family:var(--mono);font-size:0.62rem;color:var(--a2);background:none;border:1px solid rgba(255,107,71,0.3);
+  border-radius:3px;padding:0.2rem 0.6rem;cursor:pointer;transition:all 0.12s}
+.cancel-btn:hover{background:rgba(255,107,71,0.1)}
+
+/* ── LOG ── */
+.lg{background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:0.7rem;
+  margin-top:0.7rem;max-height:96px;overflow-y:auto;font-size:0.62rem;color:var(--muted);display:none;
+  scrollbar-width:thin;scrollbar-color:var(--s3) transparent}
+.lg .ok{color:var(--a3)}.lg .warn{color:var(--a1)}.lg .err{color:var(--a2)}
+
+/* ── LIMIT BAR ── */
+.lbar{padding:0.48rem 0.7rem;border-radius:5px;font-size:0.65rem;display:none;align-items:center;gap:0.4rem;margin-top:0.45rem}
+.lbar.ok{background:rgba(71,217,255,0.07);border:1px solid rgba(71,217,255,0.2);color:var(--a3)}
+.lbar.warn{background:rgba(232,255,71,0.07);border:1px solid rgba(232,255,71,0.22);color:var(--a1)}
+.lbar.err{background:rgba(255,107,71,0.07);border:1px solid rgba(255,107,71,0.22);color:var(--a2)}
+
+/* ── PREVIEW ESTIMATE BOX ── */
+.est-box{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:0.75rem;margin-top:0.45rem;display:none}
+.est-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;font-size:0.65rem}
+.est-row:last-child{margin-bottom:0}
+.est-key{color:var(--muted)}
+.est-val{color:var(--text);font-weight:700}
+.est-val.ok{color:var(--a3)}.est-val.warn{color:var(--a1)}.est-val.err{color:var(--a2)}
+
+/* ── CONTENT CARDS ── */
+.cc{background:var(--s1);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:1rem}
+.ch{padding:0.62rem 1rem;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+.cb{padding:1rem}
+.checker{
+  background:var(--s2);
+  background-image:linear-gradient(45deg,#15151d 25%,transparent 25%),
+    linear-gradient(-45deg,#15151d 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#15151d 75%),
+    linear-gradient(-45deg,transparent 75%,#15151d 75%);
+  background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0;
+  display:flex;align-items:center;justify-content:center;min-height:180px;position:relative}
+#img-prev{max-width:100%;max-height:320px;object-fit:contain;display:none;border-radius:2px}
+
+/* ── STATS ROW ── */
+.sr{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem}
+.st{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:0.65rem 0.8rem}
+.stv{font-family:var(--head);font-size:1.05rem;font-weight:800;color:var(--a1);line-height:1}
+.stk{font-size:0.58rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:0.22rem}
+.st.ok .stv{color:var(--a3)}.st.warn .stv{color:var(--a2)}.st.cyan .stv{color:var(--a3)}
+
+/* ── PIXEL ART GRID ── */
+#pa-grid{display:none;margin-bottom:1rem}
+.gcw{background:var(--s2);border-radius:5px;overflow:auto;padding:0.5rem}
+#gc{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* ── COLOR PALETTE STRIP ── */
+.pal-wrap{display:none;margin-bottom:1rem}
+.pal-strip{display:flex;gap:0;border-radius:5px;overflow:hidden;height:28px;border:1px solid var(--bd)}
+.pal-swatch{flex:1;cursor:pointer;transition:transform 0.1s;position:relative}
+.pal-swatch:hover{transform:scaleY(1.15);z-index:2}
+.pal-count{font-size:0.58rem;color:var(--muted);margin-top:0.35rem}
+
+/* ── GRID PNG PREVIEW ── */
+#grid-png-wrap{display:none;margin-bottom:1rem}
+#grid-png-canvas{max-width:100%;display:block;border-radius:4px;image-rendering:pixelated}
+
+/* ── CANVAS RESULT ── */
+.rcw{display:flex;align-items:center;justify-content:center;min-height:200px}
+#result-canvas{max-width:100%;max-height:520px;image-rendering:pixelated;image-rendering:crisp-edges;border-radius:2px}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:4rem 2rem;color:var(--muted)}
+.e-ico{font-size:2.8rem;margin-bottom:1rem}
+.e-title{font-family:var(--head);font-size:1.2rem;color:var(--text);margin-bottom:0.5rem;font-weight:800}
+.e-desc{font-size:0.72rem;line-height:1.9;color:var(--muted)}
+.e-feat{display:inline-flex;flex-wrap:wrap;gap:0.4rem;justify-content:center;margin-top:1rem}
+.feat-pill{padding:0.22rem 0.65rem;border-radius:20px;font-size:0.6rem;border:1px solid var(--bd2);color:var(--muted)}
+.feat-pill.y{border-color:rgba(232,255,71,0.3);color:var(--a1)}
+.feat-pill.c{border-color:rgba(71,217,255,0.3);color:var(--a3)}
+.feat-pill.v{border-color:rgba(184,71,255,0.3);color:var(--a4)}
+
+/* ── FAST MODE TAG ── */
+.fast-tag{display:inline-block;padding:0.1rem 0.45rem;border-radius:3px;font-size:0.58rem;
+  background:rgba(232,255,71,0.1);border:1px solid rgba(232,255,71,0.25);color:var(--a1);margin-left:0.4rem}
+
+.hidden{display:none!important}
+#hidden-canvas{display:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--s3)}
+
+@media(max-width:780px){
+  :root{--sb:260px;--fs:14px}
+  .sr{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .wrap{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{height:auto;max-height:55vh;border-right:none;border-bottom:1px solid var(--bd)}
+  .content{height:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <div class="logo">Pixel.Studio<sup>v3</sup></div>
+    <div class="tagline">Image ↔ Spreadsheet · Pixel precision toolkit</div>
+  </div>
+  <div class="badge"><span class="dot"></span>Production · All bugs fixed</div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('i2d',this)">Image → Data</button>
+    <button class="tab" onclick="switchTab('d2i',this)">Data → Image</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ══════════════════ IMAGE → DATA ══════════════════ -->
+<div id="p-i2d" class="panel on">
+
+<div class="sidebar" id="sb-i2d">
+
+  <div>
+    <div class="slbl"><span class="slbl-num">1</span>Upload Image</div>
+    <div class="dz" id="dz-img" ondragover="dzo(event,'dz-img')" ondragleave="dzl('dz-img')" ondrop="ddrop_img(event)">
+      <input type="file" id="img-file" accept="image/*" onchange="load_img(event)">
+      <span class="dz-ico">🖼</span>
+      <div class="dz-t">Drop or click to upload</div>
+      <div class="dz-h">PNG · JPG · GIF · BMP · WEBP<br><b>Auto-validated · Any browser format</b></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="slbl"><span class="slbl-num">2</span>Export Mode</div>
+    <div class="mg">
+      <label class="mc sel" id="mc-full" onclick="set_mode('full')">
+        <input type="radio" name="mode" value="full" checked>
+        <div class="mc-n">Full Export</div><div class="mc-d">All pixels, auto-split</div>
+      </label>
+      <label class="mc" id="mc-pa" onclick="set_mode('pa')">
+        <input type="radio" name="mode" value="pa">
+        <div class="mc-n">Pixel Art</div><div class="mc-d">Grid preview + export</div>
+      </label>
+    </div>
+  </div>
+
+  <!-- full mode options -->
+  <div id="full-opts">
+    <div class="slbl"><span class="slbl-num">3</span>Downscaling</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Max dimension (px)</span><input type="number" id="maxdim" value="256" min="8" max="2000" onchange="on_opts()"></div>
+      <div class="cr" style="flex-direction:column;align-items:flex-start;gap:0.35rem">
+        <span class="ck">Scale: <span id="sc-out">100</span>%</span>
+        <input type="range" id="sc-range" min="5" max="100" value="100" oninput="on_scale()">
+      </div>
+    </div>
+  </div>
+
+  <!-- pixel art options -->
+  <div id="pa-opts" class="hidden">
+    <div class="slbl"><span class="slbl-num">3</span>Grid Preset</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Size</span>
+        <select id="pa-size" onchange="on_opts()">
+          <option value="16">16 × 16</option>
+          <option value="32" selected>32 × 32</option>
+          <option value="64">64 × 64</option>
+          <option value="128">128 × 128</option>
+        </select>
+      </div>
+      <div class="cr"><span class="ck">Show grid lines</span>
+        <label class="tog"><input type="checkbox" id="show-grid" checked onchange="render_pa()"><span class="ts"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="slbl"><span class="slbl-num">4</span>Options</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Include alpha (A channel)</span>
+        <label class="tog"><input type="checkbox" id="inc-alpha" onchange="on_opts()"><span class="ts"></span></label>
+      </div>
+      <div class="cr"><span class="ck">RLE compression</span>
+        <label class="tog"><input type="checkbox" id="use-rle" onchange="on_opts()"><span class="ts"></span></label>
+      </div>
+      <div class="cr"><span class="ck">Fast mode <span class="fast-tag">⚡ 3× faster</span></span>
+        <label class="tog"><input type="checkbox" id="fast-mode" onchange="on_opts()"><span class="ts"></span></label>
+      </div>
+      <div class="cr"><span class="ck">Color reduction</span>
+        <select id="col-reduce" onchange="on_opts()">
+          <option value="none">None (all colors)</option>
+          <option value="256">256 colors</option>
+          <option value="64">64 colors</option>
+          <option value="32">32 colors</option>
+          <option value="16">16 colors</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="slbl"><span class="slbl-num">5</span>Export</div>
+    <div class="lbar" id="lbar"></div>
+    <div class="est-box" id="est-box">
+      <div class="est-row"><span class="est-key">Pixels</span><span class="est-val" id="est-px">—</span></div>
+      <div class="est-row"><span class="est-key">Est. file size (xlsx)</span><span class="est-val" id="est-sz">—</span></div>
+      <div class="est-row"><span class="est-key">Est. time</span><span class="est-val" id="est-tm">—</span></div>
+      <div class="est-row"><span class="est-key">Sheet count</span><span class="est-val" id="est-sh">—</span></div>
+    </div>
+    <div class="bg2" style="margin-top:0.5rem">
+      <button class="btn bp" id="btn-xlsx" onclick="exp_xlsx()" disabled>⚡ Export Excel (.xlsx)</button>
+      <div class="eg">
+        <button class="btn bc" id="btn-csv" onclick="exp_csv()" disabled>↓ CSV</button>
+        <button class="btn bv" id="btn-json" onclick="exp_json()" disabled>↓ JSON</button>
+      </div>
+      <div class="eg">
+        <button class="btn bg5" id="btn-gridpng" onclick="gen_grid_png()" disabled>⊞ Grid PNG</button>
+        <button class="btn bg_" id="btn-ci" onclick="clr_img()" style="display:none">✕ Clear</button>
+      </div>
+    </div>
+    <div class="pw" id="pw-i">
+      <div class="ph"><span id="pl-i">Processing…</span><span id="pp-i">0%</span></div>
+      <div class="pb"><div class="pf" id="pf-i"></div></div>
+    </div>
+    <div class="cancel-row" id="cr-i">
+      <button class="cancel-btn" onclick="cancel_i()">✕ Cancel</button>
+    </div>
+    <div class="lg" id="log-i"></div>
+  </div>
+
+</div><!-- /sidebar i2d -->
+
+<div class="content" id="ct-i2d">
+  <div id="i-empty" class="empty">
+    <div class="e-ico">🖼</div>
+    <div class="e-title">Upload an image to begin</div>
+    <div class="e-desc">Every pixel mapped to X, Y coordinates with R, G, B, HEX values.<br>Export to Excel, CSV, or JSON. Reconstruct any exported file back to image.</div>
+    <div class="e-feat">
+      <span class="feat-pill y">⚡ Multi-sheet Excel</span>
+      <span class="feat-pill c">↓ CSV / JSON</span>
+      <span class="feat-pill v">⊞ Grid PNG export</span>
+      <span class="feat-pill y">🎨 Color reduction</span>
+      <span class="feat-pill c">RLE compression</span>
+      <span class="feat-pill v">Pixel Art mode</span>
+      <span class="feat-pill y">Cancel anytime</span>
+      <span class="feat-pill c">No crash at scale</span>
+    </div>
+  </div>
+  <div id="i-ready" class="hidden">
+    <div class="sr" id="stats-row"></div>
+    <!-- Color palette -->
+    <div class="cc pal-wrap" id="pal-wrap">
+      <div class="ch"><span class="ct">Reduced color palette</span><span id="pal-count" style="font-size:0.62rem;color:var(--muted)"></span></div>
+      <div class="cb">
+        <div class="pal-strip" id="pal-strip"></div>
+        <div class="pal-count" id="pal-info"></div>
+      </div>
+    </div>
+    <!-- Image preview -->
+    <div class="cc">
+      <div class="ch"><span class="ct">Image preview</span><span id="img-dbadge" style="font-size:0.62rem;color:var(--muted)"></span></div>
+      <div class="checker"><img id="img-prev" alt="preview"></div>
+    </div>
+    <!-- Pixel art grid -->
+    <div id="pa-grid" class="cc">
+      <div class="ch"><span class="ct">Pixel art grid preview</span><span id="pa-badge" style="font-size:0.62rem;color:var(--a1)"></span></div>
+      <div class="cb"><div class="gcw"><canvas id="gc"></canvas></div></div>
+    </div>
+    <!-- Grid PNG preview -->
+    <div id="grid-png-wrap" class="cc">
+      <div class="ch"><span class="ct">Grid PNG preview</span><span id="gpng-badge" style="font-size:0.62rem;color:var(--a5)"></span></div>
+      <div class="cb"><canvas id="grid-png-canvas"></canvas></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /i2d panel -->
+
+
+<!-- ══════════════════ DATA → IMAGE ══════════════════ -->
+<div id="p-d2i" class="panel">
+
+<div class="sidebar" id="sb-d2i">
+  <div>
+    <div class="slbl"><span class="slbl-num">1</span>Upload Data File</div>
+    <div class="dz cyan" id="dz-xls" ondragover="dzo(event,'dz-xls')" ondragleave="dzl('dz-xls')" ondrop="ddrop_xls(event)">
+      <input type="file" id="xls-file" accept=".xlsx,.xls,.csv,.json" onchange="load_data(event)">
+      <span class="dz-ico">📊</span>
+      <div class="dz-t">Drop data file here</div>
+      <div class="dz-h">Excel · CSV · JSON<br><b>Auto-detects columns · RLE-aware</b></div>
+    </div>
+  </div>
+  <div>
+    <div class="slbl"><span class="slbl-num">2</span>Rebuild Options</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Upscale (px per pixel)</span>
+        <input type="number" id="upscale" value="1" min="1" max="32">
+      </div>
+      <div class="cr"><span class="ck">Max input rows</span>
+        <input type="number" id="max-rows" value="500000" min="1000" max="2000000">
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="slbl"><span class="slbl-num">3</span>Download</div>
+    <div class="bg2">
+      <button class="btn bp" id="btn-rebuild" onclick="rebuild()" disabled>🎨 Rebuild Image</button>
+      <div class="eg">
+        <button class="btn bc" id="btn-png" onclick="dl_canvas('png')" disabled>↓ PNG</button>
+        <button class="btn bg_" id="btn-jpg" onclick="dl_canvas('jpg')" disabled>↓ JPG</button>
+      </div>
+      <button class="btn bg_" id="btn-cx" onclick="clr_xls()" style="display:none">✕ Clear</button>
+    </div>
+    <div class="pw" id="pw-x">
+      <div class="ph"><span id="pl-x">Reading…</span><span id="pp-x">0%</span></div>
+      <div class="pb"><div class="pf" id="pf-x"></div></div>
+    </div>
+    <div class="cancel-row" id="cr-x">
+      <button class="cancel-btn" onclick="cancel_x()">✕ Cancel</button>
+    </div>
+    <div class="lg" id="log-x"></div>
+  </div>
+</div>
+
+<div class="content" id="ct-d2i">
+  <div id="x-empty" class="empty">
+    <div class="e-ico">📊</div>
+    <div class="e-title">Upload a data file to reconstruct</div>
+    <div class="e-desc">Supports Excel (multi-sheet), CSV, or JSON exported by this tool.<br>Auto-detects all column formats. RLE-aware. Upscale output. Strict row validation.</div>
+  </div>
+  <div id="x-ready" class="hidden">
+    <div class="sr" id="xls-sr"></div>
+    <div class="cc">
+      <div class="ch"><span class="ct">Reconstructed image</span><span id="rc-badge" style="font-size:0.62rem;color:var(--a3)"></span></div>
+      <div class="checker rcw"><canvas id="result-canvas"></canvas></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /d2i panel -->
+
+</div><!-- /.wrap -->
+<canvas id="hidden-canvas" style="display:none"></canvas>
+
+<!-- ══════════════════ SCRIPTS ══════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS & STATE
+// ─────────────────────────────────────────────────────────────────────────────
+const XLIMIT   = 1048560;   // Excel hard row limit (with header)
+const MEM_WARN = 200000;    // warn user
+const MEM_CAP  = 1000000;   // absolute cap before asking confirmation
+const MAX_FILE  = 80 * 1024 * 1024; // 80 MB
+
+let img_el = null, img_loaded = false, img_w = 0, img_h = 0;
+let mode = 'full';
+let cancelled_i = false, cancelled_x = false;
+let reduced_palette = null;   // color reduction result
+let xls_pixels = null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const h2 = n => clamp(Math.round(n), 0, 255).toString(16).padStart(2, '0').toUpperCase();
+const fmtN = n => n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toLocaleString();
+const fmtSz = b => b >= 1e6 ? (b/1e6).toFixed(1)+' MB' : (b/1024).toFixed(0)+' KB';
+const fmtTime = ms => ms >= 60000 ? (ms/60000).toFixed(0)+'m' : ms >= 1000 ? (ms/1000).toFixed(0)+'s' : ms+'ms';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DRAG & DROP
+// ─────────────────────────────────────────────────────────────────────────────
+function dzo(e, id) { e.preventDefault(); $(id).classList.add('over'); }
+function dzl(id)    { $(id).classList.remove('over'); }
+function ddrop_img(e){ e.preventDefault(); dzl('dz-img'); const f=e.dataTransfer.files[0]; if(f) proc_img(f); }
+function ddrop_xls(e){ e.preventDefault(); dzl('dz-xls'); const f=e.dataTransfer.files[0]; if(f) proc_data(f); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB SWITCHING
+// ─────────────────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  ['i2d','d2i'].forEach(t => {
+    const p = $('p-'+t); if(p){ p.classList.remove('on'); p.style.display='none'; }
+  });
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const p = $('p-'+id); if(p){ p.classList.add('on'); p.style.display='contents'; }
+}
+$('p-i2d').style.display='contents';
+$('p-d2i').style.display='none';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODE SELECTION
+// ─────────────────────────────────────────────────────────────────────────────
+function set_mode(m) {
+  mode = m;
+  ['full','pa'].forEach(x => $('mc-'+x).classList.toggle('sel', x===m));
+  $('full-opts').classList.toggle('hidden', m!=='full');
+  $('pa-opts').classList.toggle('hidden',   m!=='pa');
+  $('pa-grid').style.display = (m==='pa' && img_loaded) ? 'block' : 'none';
+  if(m==='pa' && img_loaded) render_pa();
+  on_opts();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROGRESS & LOG
+// ─────────────────────────────────────────────────────────────────────────────
+function sp(pfx, pct, lbl) {
+  $('pw-'+pfx).style.display = 'block';
+  $('pf-'+pfx).style.width = pct+'%';
+  $('pp-'+pfx).textContent = Math.round(pct)+'%';
+  if(lbl) $('pl-'+pfx).textContent = lbl;
+}
+function ilog(id, msg, type='') {
+  const e=$(id); e.style.display='block';
+  e.innerHTML += `<div class="${type}">${msg}</div>`;
+  e.scrollTop = e.scrollHeight;
+}
+function show_cancel(pfx, show) {
+  $('cr-'+pfx).style.display = show ? 'block' : 'none';
+}
+function cancel_i() { cancelled_i = true; ilog('log-i','⚠ Export cancelled','warn'); show_cancel('i',false); }
+function cancel_x() { cancelled_x = true; ilog('log-x','⚠ Cancelled','warn'); show_cancel('x',false); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMAGE LOADING — with validation
+// ─────────────────────────────────────────────────────────────────────────────
+function load_img(e) { if(e.target.files[0]) proc_img(e.target.files[0]); }
+
+function proc_img(file) {
+  // Validate
+  const validTypes = /^image\//;
+  const validExts  = /\.(png|jpe?g|gif|bmp|webp|svg|tiff?|ico|avif)$/i;
+  if(!validTypes.test(file.type) && !validExts.test(file.name)) {
+    return alert('Not a recognised image format. Please use PNG, JPG, GIF, BMP, or WEBP.');
+  }
+  if(file.size > MAX_FILE) {
+    return alert(`File too large (${fmtSz(file.size)}). Maximum is 80 MB.`);
+  }
+
+  const reader = new FileReader();
+  reader.onerror = () => ilog('log-i','❌ FileReader error — try another file','err');
+  reader.onload = ev => {
+    const img = new Image();
+    img.onerror = () => ilog('log-i','❌ Image decode failed. Try PNG or JPG format.','err');
+    img.onload = () => {
+      img_el=img; img_w=img.naturalWidth; img_h=img.naturalHeight; img_loaded=true;
+      reduced_palette = null;
+      $('img-prev').src = ev.target.result;
+      $('img-prev').style.display = 'block';
+      $('i-empty').classList.add('hidden');
+      $('i-ready').classList.remove('hidden');
+      $('img-dbadge').textContent = `${img_w} × ${img_h} · ${fmtSz(file.size)}`;
+      $('btn-ci').style.display = '';
+      $('grid-png-wrap').style.display = 'none';
+      ilog('log-i', `✓ ${file.name} · ${img_w}×${img_h}`, 'ok');
+      on_opts();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clr_img() {
+  img_el=null; img_loaded=false; img_w=0; img_h=0; reduced_palette=null;
+  $('img-file').value='';
+  $('img-prev').src=''; $('img-prev').style.display='none';
+  $('i-empty').classList.remove('hidden');
+  $('i-ready').classList.add('hidden');
+  $('btn-ci').style.display='none';
+  ['btn-xlsx','btn-csv','btn-json','btn-gridpng'].forEach(b=>$(b).disabled=true);
+  ['log-i','pw-i','cr-i'].forEach(x=>{const e=$(x);e.style.display='none';if(e.classList.contains('lg'))e.innerHTML='';});
+  $('pa-grid').style.display='none';
+  $('pal-wrap').style.display='none';
+  $('grid-png-wrap').style.display='none';
+  $('stats-row').innerHTML='';
+  $('lbar').style.display='none';
+  $('est-box').style.display='none';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPUTE SAMPLED DIMS — fixed aspect ratio logic
+// ─────────────────────────────────────────────────────────────────────────────
+function get_dims() {
+  if(!img_loaded) return {w:0,h:0};
+  if(mode==='pa') { const s=parseInt($('pa-size').value)||32; return {w:s,h:s}; }
+  const maxd = clamp(parseInt($('maxdim').value)||256, 8, 2000);
+  const sc   = parseInt($('sc-range').value) / 100;
+  // Apply scale first, then constrain to maxd — preserving aspect ratio exactly
+  let w = Math.round(img_w * sc);
+  let h = Math.round(img_h * sc);
+  if(w > maxd || h > maxd) {
+    const ratio = Math.min(maxd/w, maxd/h);
+    w = Math.round(w * ratio);
+    h = Math.round(h * ratio);
+  }
+  return { w: Math.max(1,w), h: Math.max(1,h) };
+}
+
+function on_scale() { $('sc-out').textContent=$('sc-range').value; on_opts(); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OPTIONS CHANGED — update all previews & estimates
+// ─────────────────────────────────────────────────────────────────────────────
+function on_opts() {
+  if(!img_loaded) return;
+  const {w,h} = get_dims();
+  const rle   = $('use-rle').checked;
+  const fast  = $('fast-mode').checked;
+  const alpha = $('inc-alpha').checked;
+  const total = w * h;
+
+  // Estimate row count (RLE ~60% heuristic for natural images)
+  const est_rows = rle ? Math.round(total * 0.6) : total;
+  // Estimate file sizes (bytes per row heuristic: xlsx ~35B, csv ~20B, json ~60B)
+  const bytes_per_row = fast ? 25 : (alpha ? 45 : 38);
+  const est_xlsx = est_rows * bytes_per_row;
+  const est_csv  = est_rows * (fast ? 14 : 22);
+  const est_json = est_rows * (fast ? 24 : 38);
+  // Estimate time (rough: 50k rows/sec for xlsx, 200k for csv)
+  const est_time_xlsx = est_rows / 40000 * 1000;
+  const est_sheets    = Math.max(1, Math.ceil(est_rows / XLIMIT));
+
+  const over = est_rows >= XLIMIT, big = est_rows > MEM_WARN;
+
+  // Stats row
+  $('stats-row').innerHTML = `
+    <div class="st"><div class="stv">${img_w}×${img_h}</div><div class="stk">Original</div></div>
+    <div class="st"><div class="stv">${w}×${h}</div><div class="stk">Sampled</div></div>
+    <div class="st ${over?'warn':big?'warn':'ok'}"><div class="stv">${fmtN(est_rows)}</div><div class="stk">Est. rows</div></div>
+    <div class="st ${over?'warn':'ok'}"><div class="stv">${est_sheets>1?est_sheets+'×':'OK'}</div><div class="stk">Sheets</div></div>
+  `;
+
+  // Limit bar
+  const lb = $('lbar'); lb.style.display='flex';
+  if(over)     { lb.className='lbar err';  lb.textContent=`⚠ ${fmtN(est_rows)} rows → auto-split into ${est_sheets} sheets`; }
+  else if(big) { lb.className='lbar warn'; lb.textContent=`Large export — ${fmtN(est_rows)} rows. Consider Fast Mode.`; }
+  else         { lb.className='lbar ok';   lb.textContent=`✓ ${fmtN(est_rows)} rows — within single-sheet limit`; }
+
+  // Preview estimate box
+  $('est-box').style.display = 'block';
+  const set_est = (id,val,cls) => { $(id).textContent=val; $(id).className='est-val '+(cls||''); };
+  set_est('est-px',  fmtN(total), total>MEM_WARN?'warn':'ok');
+  set_est('est-sz',  `xlsx: ${fmtSz(est_xlsx)} · csv: ${fmtSz(est_csv)} · json: ${fmtSz(est_json)}`, big?'warn':'ok');
+  set_est('est-tm',  `~${fmtTime(est_time_xlsx)} (xlsx)`, est_time_xlsx>10000?'warn':'ok');
+  set_est('est-sh',  est_sheets.toString(), est_sheets>1?'warn':'ok');
+
+  // PA grid
+  if(mode==='pa' && img_loaded) { $('pa-grid').style.display='block'; render_pa(w,h); }
+  else $('pa-grid').style.display='none';
+
+  // Color reduction preview
+  const cr = $('col-reduce').value;
+  if(cr !== 'none' && img_loaded) {
+    do_color_reduction(w,h,parseInt(cr));
+  } else {
+    $('pal-wrap').style.display = 'none';
+    reduced_palette = null;
+  }
+
+  ['btn-xlsx','btn-csv','btn-json','btn-gridpng'].forEach(b=>$(b).disabled=false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COLOR REDUCTION — median cut (simplified k-means in Lab-space heuristic)
+// ─────────────────────────────────────────────────────────────────────────────
+function do_color_reduction(w, h, k) {
+  const hc=$('hidden-canvas'); hc.width=w; hc.height=h;
+  const ctx=hc.getContext('2d'); ctx.drawImage(img_el,0,0,w,h);
+  const px=ctx.getImageData(0,0,w,h).data;
+  const total=w*h;
+
+  // Sample up to 10000 pixels for palette calculation
+  const step = Math.max(1, Math.floor(total/10000));
+  const samples=[];
+  for(let i=0;i<total;i+=step) {
+    const idx=i*4;
+    samples.push([px[idx],px[idx+1],px[idx+2]]);
+  }
+
+  // K-means with k clusters
+  let centroids = [];
+  // Init: spread picks
+  const used=new Set();
+  while(centroids.length<k && centroids.length<samples.length) {
+    const idx=Math.floor(Math.random()*samples.length);
+    if(!used.has(idx)){used.add(idx);centroids.push([...samples[idx]]);}
+  }
+
+  for(let iter=0;iter<8;iter++) {
+    const sums=centroids.map(()=>[0,0,0,0]); // r,g,b,count
+    for(const s of samples) {
+      let best=-1,bd=Infinity;
+      centroids.forEach((c,ci)=>{
+        const d=(s[0]-c[0])**2+(s[1]-c[1])**2+(s[2]-c[2])**2;
+        if(d<bd){bd=d;best=ci;}
+      });
+      sums[best][0]+=s[0];sums[best][1]+=s[1];sums[best][2]+=s[2];sums[best][3]++;
+    }
+    centroids=sums.map(s=>s[3]>0?[s[0]/s[3],s[1]/s[3],s[2]/s[3]]:[0,0,0]);
+  }
+
+  // Sort by luminance
+  centroids.sort((a,b)=>0.299*b[0]+0.587*b[1]+0.114*b[2] - (0.299*a[0]+0.587*a[1]+0.114*a[2]));
+  reduced_palette = centroids.map(c=>c.map(Math.round));
+
+  // Show palette strip
+  $('pal-wrap').style.display='block';
+  $('pal-count').textContent=k+' colors';
+  $('pal-strip').innerHTML = reduced_palette.map(c=>{
+    const hex=`rgb(${c[0]},${c[1]},${c[2]})`;
+    return `<div class="pal-swatch" style="background:${hex}" title="rgb(${c[0]},${c[1]},${c[2]}) → #${h2(c[0])}${h2(c[1])}${h2(c[2])}"></div>`;
+  }).join('');
+  $('pal-info').textContent=`${reduced_palette.length} colors · hover swatches to see values`;
+}
+
+function quantize_color(r,g,b) {
+  if(!reduced_palette) return {r,g,b};
+  let best=-1,bd=Infinity;
+  reduced_palette.forEach((c,i)=>{
+    const d=(r-c[0])**2+(g-c[1])**2+(b-c[2])**2;
+    if(d<bd){bd=d;best=i;}
+  });
+  return {r:reduced_palette[best][0],g:reduced_palette[best][1],b:reduced_palette[best][2]};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RASTERISE
+// ─────────────────────────────────────────────────────────────────────────────
+function rasterise(w,h) {
+  const hc=$('hidden-canvas'); hc.width=w; hc.height=h;
+  const ctx=hc.getContext('2d'); ctx.drawImage(img_el,0,0,w,h);
+  return ctx.getImageData(0,0,w,h).data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUILD ROW DATA — without storing all at once in memory
+// Returns a generator function for chunked processing
+// ─────────────────────────────────────────────────────────────────────────────
+function* row_generator(px, w, h, alpha, rle, fast) {
+  if(!rle) {
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
+      const i=(y*w+x)*4;
+      let r=px[i],g=px[i+1],b=px[i+2],a=px[i+3];
+      if(reduced_palette){const q=quantize_color(r,g,b);r=q.r;g=q.g;b=q.b;}
+      if(fast) yield [x,y,r,g,b,1];
+      else {
+        const hex='#'+h2(r)+h2(g)+h2(b);
+        if(alpha) yield [x,y,r,g,b,a,hex,'#'+h2(r)+h2(g)+h2(b)+h2(a),1];
+        else      yield [x,y,r,g,b,hex,1];
+      }
+    }
+  } else {
+    let rr,rg,rb,ra,cnt=0,sx,sy;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
+      const i=(y*w+x)*4;
+      let r=px[i],g=px[i+1],b=px[i+2],a=px[i+3];
+      if(reduced_palette){const q=quantize_color(r,g,b);r=q.r;g=q.g;b=q.b;}
+      if(cnt>0&&r===rr&&g===rg&&b===rb&&a===ra){cnt++;}
+      else {
+        if(cnt>0){
+          if(fast) yield [sx,sy,rr,rg,rb,cnt];
+          else {
+            const hex='#'+h2(rr)+h2(rg)+h2(rb);
+            if(alpha) yield [sx,sy,rr,rg,rb,ra,hex,'#'+h2(rr)+h2(rg)+h2(rb)+h2(ra),cnt];
+            else      yield [sx,sy,rr,rg,rb,hex,cnt];
+          }
+        }
+        rr=r;rg=g;rb=b;ra=a;sx=x;sy=y;cnt=1;
+      }
+    }
+    if(cnt>0){
+      if(fast) yield [sx,sy,rr,rg,rb,cnt];
+      else {
+        const hex='#'+h2(rr)+h2(rg)+h2(rb);
+        if(alpha) yield [sx,sy,rr,rg,rb,ra,hex,'#'+h2(rr)+h2(rg)+h2(rb)+h2(ra),cnt];
+        else      yield [sx,sy,rr,rg,rb,hex,cnt];
+      }
+    }
+  }
+}
+
+function make_header(alpha, rle, fast) {
+  if(fast) return ['X','Y','R','G','B','Count'];
+  if(alpha) return ['SL','X','Y','R','G','B','A','HEX','HEX_RGBA','Count'];
+  return ['SL','X','Y','R','G','B','HEX','Count'];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIXEL ART GRID PREVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+function render_pa(w,h) {
+  if(!img_loaded) return;
+  if(!w){const d=get_dims();w=d.w;h=d.h;}
+  const showG=$('show-grid').checked;
+  const cs=Math.min(12,Math.floor(420/Math.max(w,h)));
+  const gap=showG?1:0;
+  const c=$('gc'); c.width=w*(cs+gap); c.height=h*(cs+gap);
+  const ctx=c.getContext('2d');
+  const hc=$('hidden-canvas'); hc.width=w; hc.height=h;
+  const hctx=hc.getContext('2d'); hctx.drawImage(img_el,0,0,w,h);
+  const d=hctx.getImageData(0,0,w,h).data;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
+    const i=(y*w+x)*4;
+    let r=d[i],g=d[i+1],b=d[i+2];
+    if(reduced_palette){const q=quantize_color(r,g,b);r=q.r;g=q.g;b=q.b;}
+    ctx.fillStyle=`rgb(${r},${g},${b})`;
+    ctx.fillRect(x*(cs+gap),y*(cs+gap),cs,cs);
+  }
+  if(showG){
+    ctx.fillStyle='rgba(0,0,0,0.22)';
+    for(let x=0;x<w;x++) ctx.fillRect(x*(cs+gap)+cs,0,1,c.height);
+    for(let y=0;y<h;y++) ctx.fillRect(0,y*(cs+gap)+cs,c.width,1);
+  }
+  $('pa-badge').textContent=`${w}×${h} · ${w*h} pixels`;
+  const maxD=Math.min(580,window.innerWidth-80);
+  const sc=Math.min(1,maxD/c.width);
+  c.style.width=Math.round(c.width*sc)+'px'; c.style.height=Math.round(c.height*sc)+'px';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GRID PNG EXPORT — visual pixel grid image
+// ─────────────────────────────────────────────────────────────────────────────
+async function gen_grid_png() {
+  if(!img_loaded) return;
+  const {w,h}=get_dims();
+  const CELL=8, GAP=1;
+  const cw=w*(CELL+GAP), ch=h*(CELL+GAP);
+  const c=$('grid-png-canvas'); c.width=cw; c.height=ch;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#111116'; ctx.fillRect(0,0,cw,ch);
+
+  const hc=$('hidden-canvas'); hc.width=w; hc.height=h;
+  const hctx=hc.getContext('2d'); hctx.drawImage(img_el,0,0,w,h);
+  const pd=hctx.getImageData(0,0,w,h).data;
+
+  const CHUNK=500;
+  for(let y=0;y<h;y++) {
+    for(let x=0;x<w;x++) {
+      const i=(y*w+x)*4;
+      let r=pd[i],g=pd[i+1],b=pd[i+2];
+      if(reduced_palette){const q=quantize_color(r,g,b);r=q.r;g=q.g;b=q.b;}
+      ctx.fillStyle=`rgb(${r},${g},${b})`;
+      ctx.fillRect(x*(CELL+GAP),y*(CELL+GAP),CELL,CELL);
+    }
+    if(y%50===0) await sleep(0);
+  }
+
+  $('grid-png-wrap').style.display='block';
+  const maxD=Math.min(660,window.innerWidth-60);
+  const sc=Math.min(1,maxD/cw);
+  c.style.width=Math.round(cw*sc)+'px'; c.style.height=Math.round(ch*sc)+'px';
+  $('gpng-badge').textContent=`${cw}×${ch} · ${w}×${h} grid`;
+
+  // auto download
+  const a=document.createElement('a');
+  a.href=c.toDataURL('image/png');
+  a.download=`pixel_grid_${w}x${h}.png`;
+  a.click();
+  ilog('log-i',`✅ Grid PNG saved — ${w}×${h} cells, ${cw}×${ch}px`,'ok');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT EXCEL — chunked, cancellable, auto-split sheets
+// ─────────────────────────────────────────────────────────────────────────────
+async function exp_xlsx() {
+  if(!img_loaded) return;
+  cancelled_i=false;
+  set_exp_btns(true); $('log-i').innerHTML=''; $('log-i').style.display='none';
+  sp('i',3,'Rasterising…'); show_cancel('i',true); await sleep(10);
+
+  const {w,h}=get_dims();
+  const total=w*h;
+
+  // Memory safety cap
+  if(total > MEM_CAP) {
+    const ok=confirm(`This image has ${fmtN(total)} pixels. Exporting may use significant memory and time. Continue?`);
+    if(!ok){ set_exp_btns(false); show_cancel('i',false); return; }
+  }
+
+  const alpha=$('inc-alpha').checked, rle=$('use-rle').checked, fast=$('fast-mode').checked;
+  const px=rasterise(w,h);
+  sp('i',10,'Building workbook…'); await sleep(10);
+
+  const wb=XLSX.utils.book_new();
+  const hdr=make_header(alpha,rle,fast);
+  let sl=1, sheet_rows=[hdr], sheet_idx=1, total_written=0;
+  const gen=row_generator(px,w,h,alpha,rle,fast);
+  const CHUNK_SIZE=5000;
+  let chunk_count=0;
+
+  for(const row of gen) {
+    if(cancelled_i) break;
+    if(!fast) row.unshift(sl++); // prepend SL No.
+    sheet_rows.push(row);
+    total_written++;
+    chunk_count++;
+
+    if(sheet_rows.length-1 >= XLIMIT) {
+      // flush sheet
+      const ws=XLSX.utils.aoa_to_sheet(sheet_rows);
+      XLSX.utils.book_append_sheet(wb,ws,sheet_idx===1?'Pixels':`Pixels_${sheet_idx}`);
+      ilog('log-i',`Sheet ${sheet_idx}: ${fmtN(sheet_rows.length-1)} rows`,'ok');
+      sheet_idx++; sheet_rows=[hdr];
+    }
+    if(chunk_count >= CHUNK_SIZE) {
+      sp('i', 10+(total_written/total)*75, `Row ${fmtN(total_written)} / ${fmtN(total)}…`);
+      await sleep(0); chunk_count=0;
+    }
+  }
+
+  if(sheet_rows.length>1) {
+    const ws=XLSX.utils.aoa_to_sheet(sheet_rows);
+    XLSX.utils.book_append_sheet(wb,ws,sheet_idx===1?'Pixels':`Pixels_${sheet_idx}`);
+  }
+
+  if(cancelled_i){ set_exp_btns(false); show_cancel('i',false); return; }
+
+  // Metadata sheet
+  const meta=XLSX.utils.aoa_to_sheet([
+    ['Pixel Studio v3 — Export'],[]
+    ,['Original',`${img_w}×${img_h}`],['Sampled',`${w}×${h}`],['Total pixels',w*h]
+    ,['Data rows',total_written],['RLE',rle?'Yes':'No'],['Fast mode',fast?'Yes':'No']
+    ,['Alpha',alpha?'Yes':'No'],['Color reduction',$('col-reduce').value]
+    ,['Sheets',sheet_idx],['Exported',new Date().toISOString()],[]
+    ,['Column guide']
+    ,['SL','Row number (not in fast mode)'],['X','Column (0=left)'],['Y','Row (0=top)']
+    ,['R','Red 0–255'],['G','Green 0–255'],['B','Blue 0–255']
+    ,...(alpha?[['A','Alpha 0–255 (255=opaque)']]:[])
+    ,...(!fast?[['HEX','#RRGGBB'],['Count','RLE run length (1 if RLE off)']]:[['Count','RLE run length']])
+    ,[],['Reconstruct','Upload this file in the Data→Image tab']
+  ]);
+  meta['!cols']=[{wch:22},{wch:42}];
+  XLSX.utils.book_append_sheet(wb,meta,'Metadata');
+
+  sp('i',92,'Saving file…'); await sleep(10);
+  XLSX.writeFile(wb,`pixels_${w}x${h}${rle?'_rle':''}${fast?'_fast':''}.xlsx`);
+  sp('i',100,'Done!');
+  ilog('log-i',`✅ Excel saved — ${sheet_idx} sheet(s) · ${fmtN(total_written)} rows`,'ok');
+  set_exp_btns(false); show_cancel('i',false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT CSV — streamed via Blob, PapaParse not needed for writing
+// ─────────────────────────────────────────────────────────────────────────────
+async function exp_csv() {
+  if(!img_loaded) return;
+  cancelled_i=false;
+  set_exp_btns(true); $('log-i').innerHTML=''; $('log-i').style.display='none';
+  sp('i',5,'Building CSV…'); show_cancel('i',true); await sleep(10);
+
+  const {w,h}=get_dims();
+  const total=w*h;
+  if(total>MEM_CAP) {
+    const ok=confirm(`${fmtN(total)} pixels — large CSV. Continue?`);
+    if(!ok){ set_exp_btns(false); show_cancel('i',false); return; }
+  }
+
+  const alpha=$('inc-alpha').checked, rle=$('use-rle').checked, fast=$('fast-mode').checked;
+  const px=rasterise(w,h);
+  const hdr=make_header(alpha,rle,fast);
+  const parts=[hdr.join(',')+'\n'];
+  let sl=1, written=0;
+  const gen=row_generator(px,w,h,alpha,rle,fast);
+  const CHUNK=8000;
+  let cc=0;
+
+  for(const row of gen) {
+    if(cancelled_i) break;
+    if(!fast) row.unshift(sl++);
+    parts.push(row.join(',')+'\n');
+    written++; cc++;
+    if(cc>=CHUNK){sp('i',5+(written/total)*85,`${fmtN(written)} rows…`);await sleep(0);cc=0;}
+  }
+
+  if(!cancelled_i){
+    sp('i',94,'Writing…'); await sleep(5);
+    dl_blob(new Blob(parts,{type:'text/csv'}),`pixels_${w}x${h}.csv`);
+    sp('i',100,'Done!');
+    ilog('log-i',`✅ CSV saved — ${fmtN(written)} rows`,'ok');
+  }
+  set_exp_btns(false); show_cancel('i',false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT JSON — compact array format [[x,y,r,g,b,a?,hex?,count],...]
+// ─────────────────────────────────────────────────────────────────────────────
+async function exp_json() {
+  if(!img_loaded) return;
+  cancelled_i=false;
+  set_exp_btns(true); $('log-i').innerHTML=''; $('log-i').style.display='none';
+  sp('i',5,'Building JSON…'); show_cancel('i',true); await sleep(10);
+
+  const {w,h}=get_dims();
+  const total=w*h;
+  if(total>MEM_CAP) {
+    const ok=confirm(`${fmtN(total)} pixels — large JSON. Continue?`);
+    if(!ok){ set_exp_btns(false); show_cancel('i',false); return; }
+  }
+
+  const alpha=$('inc-alpha').checked, rle=$('use-rle').checked, fast=$('fast-mode').checked;
+  const px=rasterise(w,h);
+  const hdr=make_header(alpha,rle,fast);
+
+  // Compact format: metadata + array of arrays (10x smaller than array of objects)
+  const meta_json={
+    version:3, width:w, height:h, origWidth:img_w, origHeight:img_h,
+    rle, fast, alpha, colorReduction:$('col-reduce').value,
+    columns:hdr, exportedAt:new Date().toISOString()
+  };
+
+  const parts=[`{"meta":${JSON.stringify(meta_json)},"pixels":[\n`];
+  let sl=1,written=0,first=true;
+  const gen=row_generator(px,w,h,alpha,rle,fast);
+  const CHUNK=8000; let cc=0;
+
+  for(const row of gen) {
+    if(cancelled_i) break;
+    if(!fast) row.unshift(sl++);
+    parts.push((first?'':',')+JSON.stringify(row)+'\n');
+    first=false; written++; cc++;
+    if(cc>=CHUNK){sp('i',5+(written/total)*85,`${fmtN(written)} rows…`);await sleep(0);cc=0;}
+  }
+  parts.push(']}');
+
+  if(!cancelled_i){
+    sp('i',94,'Writing…'); await sleep(5);
+    dl_blob(new Blob(parts,{type:'application/json'}),`pixels_${w}x${h}.json`);
+    sp('i',100,'Done!');
+    ilog('log-i',`✅ JSON saved — ${fmtN(written)} entries (compact format)`,'ok');
+  }
+  set_exp_btns(false); show_cancel('i',false);
+}
+
+function set_exp_btns(v){ ['btn-xlsx','btn-csv','btn-json','btn-gridpng'].forEach(b=>$(b).disabled=v); }
+function dl_blob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATA → IMAGE — LOAD FILE
+// ─────────────────────────────────────────────────────────────────────────────
+function load_data(e){ if(e.target.files[0]) proc_data(e.target.files[0]); }
+
+async function proc_data(file) {
+  xls_pixels=null; cancelled_x=false;
+  $('btn-rebuild').disabled=true; $('btn-png').disabled=true; $('btn-jpg').disabled=true;
+  $('log-x').innerHTML=''; $('x-ready').classList.add('hidden');
+  $('btn-cx').style.display=''; show_cancel('x',true);
+  sp('x',5,'Reading file…');
+
+  // File size validation
+  if(file.size > MAX_FILE) {
+    ilog('log-x',`❌ File too large (${fmtSz(file.size)}). Max 80 MB.`,'err');
+    show_cancel('x',false); return;
+  }
+
+  const ext=file.name.split('.').pop().toLowerCase();
+  try {
+    let rows;
+    if(ext==='json') {
+      const txt=await file.text();
+      let data;
+      try { data=JSON.parse(txt); } catch(e){ throw new Error('Invalid JSON: '+e.message); }
+      // Support v3 compact format, v2 object format, or plain array
+      if(data.meta && data.pixels) {
+        const meta=data.meta;
+        const cols=meta.columns||[];
+        rows=data.pixels.map(arr=>{const o={};cols.forEach((k,i)=>o[k]=arr[i]);return o;});
+        ilog('log-x',`v3 JSON · ${meta.width}×${meta.height} · ${fmtN(rows.length)} rows`,'ok');
+      } else if(Array.isArray(data)) {
+        rows=data;
+      } else if(data.pixels) {
+        rows=data.pixels;
+      } else {
+        throw new Error('Unrecognised JSON format');
+      }
+    } else if(ext==='csv') {
+      // Use PapaParse for robust CSV parsing
+      sp('x',15,'Parsing CSV…');
+      const txt=await file.text();
+      const result=Papa.parse(txt,{header:true,skipEmptyLines:true,dynamicTyping:true,
+        transformHeader:h=>h.trim()});
+      if(result.errors.length && result.errors[0].type==='Delimiter'){
+        throw new Error('CSV parse error: '+result.errors[0].message);
+      }
+      rows=result.data;
+      ilog('log-x',`CSV parsed · ${fmtN(rows.length)} rows · ${result.meta.fields?.join(', ')}`,'ok');
+    } else {
+      // Excel — PapaParse not used here, XLSX handles it
+      const buf=await file.arrayBuffer();
+      sp('x',20,'Parsing workbook…');
+      const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+      rows=[];
+      let loaded_sheets=0;
+      for(const n of wb.SheetNames) {
+        if(!n.startsWith('Pixel')) continue;
+        const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:''});
+        rows=rows.concat(r); loaded_sheets++;
+        sp('x',20+(loaded_sheets/wb.SheetNames.length*30),`Loading sheet: ${n}…`);
+        await sleep(0);
+      }
+      if(!rows.length) rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      ilog('log-x',`Excel: ${fmtN(rows.length)} rows from ${loaded_sheets||1} sheet(s)`,'ok');
+    }
+
+    // Row limit validation
+    const maxR=parseInt($('max-rows').value)||500000;
+    if(rows.length > maxR) {
+      ilog('log-x',`⚠ ${fmtN(rows.length)} rows exceeds limit (${fmtN(maxR)}). Truncating.`,'warn');
+      rows=rows.slice(0,maxR);
+    }
+
+    parse_pixel_rows(rows);
+  } catch(err) {
+    ilog('log-x','❌ '+err.message,'err');
+    show_cancel('x',false);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARSE PIXEL ROWS — strict validation, column-agnostic
+// ─────────────────────────────────────────────────────────────────────────────
+function fc(keys,...names){ return keys.find(k=>names.some(n=>k.trim().toUpperCase()===n.toUpperCase()))||null; }
+
+function parse_pixel_rows(rows) {
+  if(!rows.length){ ilog('log-x','❌ No data rows found','err'); return; }
+  sp('x',55,'Mapping pixels…');
+
+  const keys=Object.keys(rows[0]);
+  const cX   = fc(keys,'X','x_pos','COL','COLUMN');
+  const cY   = fc(keys,'Y','y_pos','ROW','ROW_NUM');
+  const cR   = fc(keys,'R','RED','R_VALUE');
+  const cG   = fc(keys,'G','GREEN','G_VALUE');
+  const cB   = fc(keys,'B','BLUE','B_VALUE');
+  const cA   = fc(keys,'A','ALPHA','A_VALUE');
+  const cHex = fc(keys,'HEX','HEX_COLOR','COLOR','COLOUR','HEX_RGB');
+  const cCnt = fc(keys,'COUNT','RLE','RUN','RUN_LENGTH');
+
+  if(!cX||!cY)   { ilog('log-x',`❌ Missing X/Y columns. Found: ${keys.join(', ')}`,'err'); return; }
+  if(!cR&&!cHex) { ilog('log-x',`❌ Missing colour columns (R,G,B or HEX). Found: ${keys.join(', ')}`,'err'); return; }
+
+  ilog('log-x',`Cols: X=${cX} Y=${cY} R=${cR||'—'} G=${cG||'—'} B=${cB||'—'} HEX=${cHex||'—'} Cnt=${cCnt||'—'}`,'ok');
+
+  let maxX=0,maxY=0, bad=0;
+  const pixels=[];
+  let hasRle=false;
+
+  for(const row of rows) {
+    const x=parseInt(row[cX]), y=parseInt(row[cY]);
+    if(isNaN(x)||isNaN(y)||x<0||y<0||x>100000||y>100000){ bad++; continue; }
+
+    let r=0,g=0,b=0,a=255;
+    if(cR&&cG&&cB) {
+      r=clamp(Math.round(parseFloat(row[cR])||0),0,255);
+      g=clamp(Math.round(parseFloat(row[cG])||0),0,255);
+      b=clamp(Math.round(parseFloat(row[cB])||0),0,255);
+      if(cA) a=clamp(Math.round(parseFloat(row[cA])||255),0,255);
+    } else if(cHex) {
+      const hx=String(row[cHex]).replace(/^#/,'').replace(/[^0-9a-fA-F]/g,'').padEnd(6,'0');
+      r=parseInt(hx.slice(0,2),16)||0;
+      g=parseInt(hx.slice(2,4),16)||0;
+      b=parseInt(hx.slice(4,6),16)||0;
+      if(hx.length>=8) a=parseInt(hx.slice(6,8),16)||255;
+    }
+
+    const cnt=cCnt?Math.max(1,Math.round(parseFloat(row[cCnt])||1)):1;
+    if(cnt>1) hasRle=true;
+    pixels.push({x,y,r,g,b,a,cnt});
+    if(x>maxX) maxX=x; if(y>maxY) maxY=y;
+  }
+
+  if(bad>0) ilog('log-x',`⚠ ${bad} invalid rows skipped`,'warn');
+
+  xls_pixels={ pixels, w:maxX+1, h:maxY+1, hasRle };
+  $('xls-sr').innerHTML=`
+    <div class="st"><div class="stv">${maxX+1}×${maxY+1}</div><div class="stk">Canvas</div></div>
+    <div class="st ok"><div class="stv">${fmtN(pixels.length)}</div><div class="stk">Records</div></div>
+    <div class="st"><div class="stv">${hasRle?'RLE':'Full'}</div><div class="stk">Mode</div></div>
+    <div class="st ok"><div class="stv">✓</div><div class="stk">Ready</div></div>
+  `;
+  ilog('log-x',`${fmtN(pixels.length)} pixel records · canvas ${maxX+1}×${maxY+1}${hasRle?' · RLE':''}`,'ok');
+  $('x-ready').classList.remove('hidden');
+  $('btn-rebuild').disabled=false;
+  sp('x',100,'Ready'); show_cancel('x',false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REBUILD IMAGE — strict (x,y)-based, not order-dependent
+// ─────────────────────────────────────────────────────────────────────────────
+async function rebuild() {
+  if(!xls_pixels) return;
+  cancelled_x=false;
+  $('btn-rebuild').disabled=true; show_cancel('x',true);
+  const {pixels,w,h,hasRle}=xls_pixels;
+  const up=clamp(parseInt($('upscale').value)||1,1,32);
+  const cw=w*up, ch=h*up;
+  $('rc-badge').textContent=`${cw}×${ch}${up>1?` (${up}× upscale)`:''}`;
+  const rc=$('result-canvas'); rc.width=cw; rc.height=ch;
+  const ctx=rc.getContext('2d'); ctx.clearRect(0,0,cw,ch);
+  const idata=ctx.createImageData(cw,ch); const d=idata.data;
+  const CHUNK=8000;
+
+  if(!hasRle) {
+    // Strict x,y placement — order independent
+    for(let i=0;i<pixels.length;i++) {
+      if(cancelled_x) break;
+      const {x,y,r,g,b,a}=pixels[i];
+      if(x>=w||y>=h) continue;
+      for(let dy=0;dy<up;dy++) for(let dx=0;dx<up;dx++) {
+        const idx=((y*up+dy)*cw+(x*up+dx))*4;
+        d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=a;
+      }
+      if(i%CHUNK===0&&i>0){sp('x',i/pixels.length*90,'Drawing…');await sleep(0);}
+    }
+  } else {
+    // RLE: expand runs starting from (x,y) in row-major order
+    // Strictly uses stored x,y as starting coordinate — not order-dependent
+    for(let i=0;i<pixels.length;i++) {
+      if(cancelled_x) break;
+      const {x,y,r,g,b,a,cnt}=pixels[i];
+      let cx=x,cy=y;
+      for(let c=0;c<cnt;c++) {
+        if(cy>=h) break;
+        if(cx>=0&&cx<w&&cy>=0&&cy<h) {
+          for(let dy=0;dy<up;dy++) for(let dx=0;dx<up;dx++) {
+            const idx=((cy*up+dy)*cw+(cx*up+dx))*4;
+            d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=a;
+          }
+        }
+        cx++;if(cx>=w){cx=0;cy++;}
+      }
+      if(i%CHUNK===0&&i>0){sp('x',i/pixels.length*90,'Expanding RLE…');await sleep(0);}
+    }
+  }
+
+  if(!cancelled_x){
+    ctx.putImageData(idata,0,0);
+    const maxD=Math.min(680,window.innerWidth-60);
+    const sc=Math.min(1,maxD/cw);
+    rc.style.width=Math.round(cw*sc)+'px'; rc.style.height=Math.round(ch*sc)+'px';
+    sp('x',100,'Done!');
+    ilog('log-x',`✅ Rebuilt ${cw}×${ch}`,'ok');
+    $('btn-png').disabled=false; $('btn-jpg').disabled=false;
+  }
+  $('btn-rebuild').disabled=false; show_cancel('x',false);
+}
+
+function dl_canvas(fmt) {
+  const rc=$('result-canvas');
+  const a=document.createElement('a');
+  a.href=rc.toDataURL(fmt==='png'?'image/png':'image/jpeg',0.97);
+  a.download='reconstructed.'+fmt; a.click();
+}
+
+function clr_xls() {
+  xls_pixels=null; $('xls-file').value='';
+  $('log-x').innerHTML=''; $('log-x').style.display='none';
+  $('pw-x').style.display='none'; $('cr-x').style.display='none';
+  $('x-ready').classList.add('hidden');
+  $('btn-rebuild').disabled=true; $('btn-png').disabled=true; $('btn-jpg').disabled=true;
+  $('btn-cx').style.display='none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Studio — Image ↔ Data</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090c;--s1:#111116;--s2:#18181f;--s3:#202029;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--border3:rgba(255,255,255,0.22);
+  --a1:#e8ff47;--a2:#ff6b47;--a3:#47d9ff;--a4:#b847ff;
+  --text:#f4f4f0;--muted:#6b6b80;--muted2:#4a4a58;
+  --mono:'Space Mono',monospace;--head:'Syne',sans-serif;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.hdr{padding:1.2rem 1.8rem 1rem;border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  background:linear-gradient(180deg,#0f0f1a 0%,var(--bg) 100%);}
+.logo{font-family:var(--head);font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;color:var(--a1)}
+.logo span{color:var(--muted)}
+.tagline{font-size:0.6rem;color:var(--muted);letter-spacing:0.13em;text-transform:uppercase;margin-top:0.2rem}
+.badge-live{display:inline-flex;align-items:center;gap:0.3rem;padding:0.18rem 0.55rem;
+  border-radius:3px;background:rgba(232,255,71,0.1);border:1px solid rgba(232,255,71,0.25);
+  font-size:0.6rem;letter-spacing:0.1em;color:var(--a1);text-transform:uppercase}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--a1);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.tabs{display:flex;gap:0.4rem;margin-left:auto}
+.tab{font-family:var(--mono);font-size:0.68rem;padding:0.4rem 0.9rem;
+  border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);
+  cursor:pointer;letter-spacing:0.05em;transition:all 0.12s}
+.tab.on{background:var(--a1);border-color:var(--a1);color:#09090c;font-weight:700}
+.tab:hover:not(.on){border-color:var(--border3);color:var(--text)}
+
+/* LAYOUT */
+.wrap{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 72px)}
+.sidebar{border-right:1px solid var(--border);background:var(--s1);padding:1rem;
+  display:flex;flex-direction:column;gap:0.85rem;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--s3) transparent}
+.content{padding:1.2rem;overflow-y:auto}
+
+/* panels */
+.panel{display:none}.panel.on{display:contents}
+
+/* section label */
+.slbl{font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:0.4rem;padding-bottom:0.35rem;border-bottom:1px solid var(--border)}
+
+/* DROP ZONE */
+.dz{border:1.5px dashed var(--border2);border-radius:7px;padding:1.6rem 1.2rem;
+  text-align:center;cursor:pointer;transition:all 0.14s;background:var(--s2);position:relative;overflow:hidden}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz:hover,.dz.over{border-color:var(--a1);background:rgba(232,255,71,0.03)}
+.dz.cyan:hover,.dz.cyan.over{border-color:var(--a3);background:rgba(71,217,255,0.03)}
+.dz-icon{font-size:1.8rem;margin-bottom:0.5rem;display:block}
+.dz-title{font-family:var(--head);font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:0.2rem}
+.dz-hint{font-size:0.6rem;color:var(--muted);line-height:1.6}
+.dz-hint b{color:var(--a3)}
+
+/* CONTROLS */
+.cg{background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:0.75rem}
+.cr{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.5rem}
+.cr:last-child{margin-bottom:0}
+.ck{font-size:0.62rem;color:var(--muted);letter-spacing:0.04em}
+select,input[type=number]{font-family:var(--mono);font-size:0.68rem;background:var(--s3);
+  border:1px solid var(--border2);color:var(--text);border-radius:3px;outline:none;transition:border-color 0.12s}
+select{padding:0.28rem 0.45rem;cursor:pointer}
+input[type=number]{padding:0.28rem 0.45rem;width:68px;text-align:right}
+select:focus,input:focus{border-color:var(--a1)}
+input[type=range]{width:100%;accent-color:var(--a1);cursor:pointer}
+/* toggle */
+.tog{position:relative;width:30px;height:16px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tslider{position:absolute;inset:0;border-radius:16px;cursor:pointer;
+  background:var(--s3);border:1px solid var(--border2);transition:0.14s}
+.tslider::before{content:'';position:absolute;width:10px;height:10px;
+  left:2px;top:2px;border-radius:50%;background:var(--muted);transition:0.14s}
+.tog input:checked~.tslider{background:var(--a1);border-color:var(--a1)}
+.tog input:checked~.tslider::before{transform:translateX(14px);background:#09090c}
+
+/* MODE CARDS */
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:0.35rem}
+.mc{padding:0.55rem;border-radius:4px;border:1px solid var(--border);background:var(--s3);
+  cursor:pointer;transition:all 0.12s;text-align:center}
+.mc:hover{border-color:var(--border3)}.mc.sel{border-color:var(--a1);background:rgba(232,255,71,0.05)}
+.mc input{display:none}
+.mc-name{font-size:0.65rem;font-weight:700;color:var(--text)}
+.mc-desc{font-size:0.55rem;color:var(--muted);margin-top:0.1rem}
+
+/* BUTTONS */
+.btn{font-family:var(--mono);font-size:0.68rem;padding:0.55rem 0.9rem;
+  border-radius:4px;border:none;cursor:pointer;letter-spacing:0.05em;transition:all 0.12s;
+  display:flex;align-items:center;justify-content:center;gap:0.35rem;width:100%}
+.bp{background:var(--a1);color:#09090c;font-weight:700}
+.bp:hover:not(:disabled){background:#f5ff6e;transform:translateY(-1px)}
+.bg{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.bg:hover:not(:disabled){border-color:var(--border3);background:var(--s2)}
+.bc{background:rgba(71,217,255,0.1);color:var(--a3);border:1px solid rgba(71,217,255,0.22)}
+.bc:hover:not(:disabled){background:rgba(71,217,255,0.18)}
+.bv{background:rgba(184,71,255,0.1);color:var(--a4);border:1px solid rgba(184,71,255,0.22)}
+.bv:hover:not(:disabled){background:rgba(184,71,255,0.18)}
+.btn:disabled{opacity:0.3;cursor:not-allowed;transform:none!important}
+.eg{display:grid;grid-template-columns:1fr 1fr;gap:0.35rem}
+.bg2{display:flex;flex-direction:column;gap:0.4rem}
+
+/* PROGRESS */
+.pw{margin-top:0.65rem;display:none}
+.ph{display:flex;justify-content:space-between;font-size:0.6rem;color:var(--muted);margin-bottom:0.3rem}
+.pb{height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.pf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--a1),var(--a3));width:0%;transition:width 0.1s}
+
+/* LOG */
+.lg{background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:0.65rem;
+  margin-top:0.65rem;max-height:90px;overflow-y:auto;font-size:0.6rem;color:var(--muted);display:none;
+  scrollbar-width:thin;scrollbar-color:var(--s3) transparent}
+.lg .ok{color:var(--a3)}.lg .warn{color:var(--a1)}.lg .err{color:var(--a2)}
+
+/* LIMIT BAR */
+.lb{padding:0.45rem 0.65rem;border-radius:4px;font-size:0.63rem;display:none;align-items:center;gap:0.4rem;margin-top:0.4rem}
+.lb.ok{background:rgba(71,217,255,0.07);border:1px solid rgba(71,217,255,0.2);color:var(--a3)}
+.lb.warn{background:rgba(232,255,71,0.07);border:1px solid rgba(232,255,71,0.2);color:var(--a1)}
+.lb.err{background:rgba(255,107,71,0.07);border:1px solid rgba(255,107,71,0.2);color:var(--a2)}
+
+/* RLE */
+.rle-info{font-size:0.6rem;color:var(--muted);margin-top:0.35rem;display:none}
+.rle-info b{color:var(--a3)}
+
+/* CONTENT */
+.cc{background:var(--s1);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:0.9rem}
+.ch{padding:0.55rem 0.9rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.ct-title{font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+.cb{padding:0.9rem}
+.checker{background:var(--s2);
+  background-image:linear-gradient(45deg,#15151c 25%,transparent 25%),
+    linear-gradient(-45deg,#15151c 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#15151c 75%),
+    linear-gradient(-45deg,transparent 75%,#15151c 75%);
+  background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;
+  display:flex;align-items:center;justify-content:center;min-height:180px}
+#img-prev{max-width:100%;max-height:280px;object-fit:contain;display:none;border-radius:2px}
+
+/* STATS */
+.sr{display:grid;grid-template-columns:repeat(4,1fr);gap:0.4rem;margin-bottom:0.9rem}
+.st{background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.7rem}
+.stv{font-family:var(--head);font-size:1rem;font-weight:800;color:var(--a1);line-height:1}
+.stk{font-size:0.56rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:0.2rem}
+.st.ok .stv{color:var(--a3)}.st.warn .stv{color:var(--a2)}
+
+/* PIXEL ART GRID */
+#pa-grid{display:none;margin-bottom:0.9rem}
+.gcw{background:var(--s2);border:1px solid var(--border);border-radius:5px;overflow:auto;padding:0.5rem}
+#gc{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* RESULT CANVAS */
+.rcw{display:flex;align-items:center;justify-content:center;min-height:200px}
+#result-canvas{max-width:100%;max-height:500px;image-rendering:pixelated;image-rendering:crisp-edges;border-radius:2px}
+
+/* EMPTY */
+.empty{text-align:center;padding:3.5rem 2rem;color:var(--muted)}
+.empty .eico{font-size:2.5rem;margin-bottom:0.9rem}
+.empty .etitle{font-family:var(--head);font-size:1.1rem;color:var(--text);margin-bottom:0.4rem;font-weight:700}
+.empty .edesc{font-size:0.68rem;line-height:1.8}
+
+.hidden{display:none!important}
+#hidden-canvas{display:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+
+@media(max-width:680px){
+  .wrap{grid-template-columns:1fr}
+  .sidebar{border-right:none;border-bottom:1px solid var(--border)}
+  .sr{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="logo">Pixel<span>.</span>Studio</div>
+    <div class="tagline">Image ↔ Spreadsheet · Pixel precision toolkit v2</div>
+  </div>
+  <div class="badge-live"><span class="dot"></span>production</div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('i2d',this)">Image → Data</button>
+    <button class="tab" onclick="switchTab('d2i',this)">Data → Image</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ═══════════ IMAGE → DATA ═══════════ -->
+<div id="p-i2d" class="panel on">
+
+<div class="sidebar" id="sb-i2d">
+  <div>
+    <div class="slbl">1 · Upload image</div>
+    <div class="dz" id="dz-img" ondragover="dzo(event,'dz-img')" ondragleave="dzl('dz-img')" ondrop="dzd_img(event)">
+      <input type="file" id="img-file" accept="image/*" onchange="load_img(event)">
+      <span class="dz-icon">🖼</span>
+      <div class="dz-title">Drop or click to upload</div>
+      <div class="dz-hint">PNG · JPG · GIF · BMP · WEBP · Any browser format<br><b>Auto-validated on load</b></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="slbl">2 · Export mode</div>
+    <div class="mg">
+      <label class="mc sel" id="mc-full" onclick="set_mode('full')">
+        <input type="radio" name="mode" value="full" checked>
+        <div class="mc-name">Full Export</div>
+        <div class="mc-desc">All pixels, auto-split sheets</div>
+      </label>
+      <label class="mc" id="mc-pa" onclick="set_mode('pa')">
+        <input type="radio" name="mode" value="pa">
+        <div class="mc-name">Pixel Art</div>
+        <div class="mc-desc">Grid preview + export</div>
+      </label>
+    </div>
+  </div>
+
+  <div id="full-opts">
+    <div class="slbl">3 · Downscaling</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Max dimension (px)</span><input type="number" id="maxdim" value="256" min="8" max="2000" onchange="on_opts()"></div>
+      <div class="cr" style="flex-direction:column;align-items:flex-start;gap:0.35rem">
+        <span class="ck">Scale: <span id="sc-out">100</span>%</span>
+        <input type="range" id="sc-range" min="5" max="100" value="100" oninput="on_scale()">
+      </div>
+    </div>
+  </div>
+
+  <div id="pa-opts" class="hidden">
+    <div class="slbl">3 · Grid preset</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Size</span>
+        <select id="pa-size" onchange="on_opts()">
+          <option value="16">16 × 16</option>
+          <option value="32" selected>32 × 32</option>
+          <option value="64">64 × 64</option>
+          <option value="128">128 × 128</option>
+        </select>
+      </div>
+      <div class="cr"><span class="ck">Show grid lines</span>
+        <label class="tog"><input type="checkbox" id="show-grid" checked onchange="render_pa_grid()"><span class="tslider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="slbl">4 · Options</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Include alpha channel</span>
+        <label class="tog"><input type="checkbox" id="inc-alpha"><span class="tslider"></span></label>
+      </div>
+      <div class="cr"><span class="ck">RLE compression</span>
+        <label class="tog"><input type="checkbox" id="use-rle" onchange="on_opts()"><span class="tslider"></span></label>
+      </div>
+    </div>
+    <div class="rle-info" id="rle-info">RLE estimate: <b id="rle-ratio">—</b> of original size</div>
+  </div>
+
+  <div>
+    <div class="slbl">5 · Export</div>
+    <div class="lb" id="limit-bar"></div>
+    <div class="bg2" style="margin-top:0.4rem">
+      <button class="btn bp" id="btn-xlsx" onclick="exp_xlsx()" disabled>⚡ Export Excel (.xlsx)</button>
+      <div class="eg">
+        <button class="btn bc" id="btn-csv" onclick="exp_csv()" disabled>↓ CSV</button>
+        <button class="btn bv" id="btn-json" onclick="exp_json()" disabled>↓ JSON</button>
+      </div>
+      <button class="btn bg" id="btn-ci" onclick="clr_img()" style="display:none">✕ Clear image</button>
+    </div>
+    <div class="pw" id="pw-i">
+      <div class="ph"><span id="pl-i">Processing…</span><span id="pp-i">0%</span></div>
+      <div class="pb"><div class="pf" id="pf-i"></div></div>
+    </div>
+    <div class="lg" id="log-i"></div>
+  </div>
+</div>
+
+<div class="content" id="ct-i2d">
+  <div id="i-empty" class="empty">
+    <div class="eico">🖼</div>
+    <div class="etitle">Upload an image to begin</div>
+    <div class="edesc">Extracts every pixel's X, Y coordinates · R, G, B values · HEX code<br>
+    Export to Excel (multi-sheet if needed) · CSV · JSON<br>
+    Pixel Art mode · RLE compression · Alpha channel support</div>
+  </div>
+  <div id="i-ready" class="hidden">
+    <div class="sr" id="stats-row"></div>
+    <div class="cc">
+      <div class="ch"><span class="ct-title">Image preview</span><span id="img-dim-badge" style="font-size:0.6rem;color:var(--muted)"></span></div>
+      <div class="checker"><img id="img-prev" alt="preview"></div>
+    </div>
+    <div id="pa-grid">
+      <div class="cc">
+        <div class="ch"><span class="ct-title">Pixel art grid preview</span><span id="pa-badge" style="font-size:0.6rem;color:var(--a1)"></span></div>
+        <div class="cb"><div class="gcw"><canvas id="gc"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /i2d -->
+
+<!-- ═══════════ DATA → IMAGE ═══════════ -->
+<div id="p-d2i" class="panel">
+
+<div class="sidebar" id="sb-d2i">
+  <div>
+    <div class="slbl">1 · Upload data file</div>
+    <div class="dz cyan" id="dz-xls" ondragover="dzo(event,'dz-xls')" ondragleave="dzl('dz-xls')" ondrop="dzd_xls(event)">
+      <input type="file" id="xls-file" accept=".xlsx,.xls,.csv,.json" onchange="load_data(event)">
+      <span class="dz-icon">📊</span>
+      <div class="dz-title">Drop data file here</div>
+      <div class="dz-hint">Excel (.xlsx/.xls) · CSV · JSON<br><b>From this tool or compatible format</b></div>
+    </div>
+  </div>
+  <div>
+    <div class="slbl">2 · Rebuild options</div>
+    <div class="cg">
+      <div class="cr"><span class="ck">Upscale (px per pixel)</span>
+        <input type="number" id="upscale" value="1" min="1" max="32">
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="slbl">3 · Download</div>
+    <div class="bg2">
+      <button class="btn bp" id="btn-rebuild" onclick="rebuild()" disabled>🎨 Rebuild Image</button>
+      <div class="eg">
+        <button class="btn bc" id="btn-png" onclick="dl_canvas('png')" disabled>↓ PNG</button>
+        <button class="btn bg" id="btn-jpg" onclick="dl_canvas('jpg')" disabled>↓ JPG</button>
+      </div>
+      <button class="btn bg" id="btn-cx" onclick="clr_xls()" style="display:none">✕ Clear</button>
+    </div>
+    <div class="pw" id="pw-x">
+      <div class="ph"><span id="pl-x">Reading…</span><span id="pp-x">0%</span></div>
+      <div class="pb"><div class="pf" id="pf-x"></div></div>
+    </div>
+    <div class="lg" id="log-x"></div>
+  </div>
+</div>
+
+<div class="content" id="ct-d2i">
+  <div id="x-empty" class="empty">
+    <div class="eico">📊</div>
+    <div class="etitle">Upload a data file to reconstruct</div>
+    <div class="edesc">Supports Excel, CSV, or JSON exported by this tool<br>
+    Auto-detects column names · RLE-aware decoding · Upscale output · Pixel-perfect</div>
+  </div>
+  <div id="x-ready" class="hidden">
+    <div class="sr" id="xls-sr"></div>
+    <div class="cc">
+      <div class="ch"><span class="ct-title">Reconstructed image</span><span id="rc-badge" style="font-size:0.6rem;color:var(--a3)"></span></div>
+      <div class="checker rcw"><canvas id="result-canvas"></canvas></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /d2i -->
+
+</div><!-- /.wrap -->
+<canvas id="hidden-canvas" style="display:none"></canvas>
+
+<script>
+// ─── utils ───────────────────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const h2=(n)=>clamp(Math.round(n),0,255).toString(16).padStart(2,'0').toUpperCase();
+const fmtN=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1000?(n/1000).toFixed(1)+'K':n.toLocaleString();
+
+// ─── drag/drop ───────────────────────────────────────────────────────────────
+function dzo(e,id){e.preventDefault();$(id).classList.add('over')}
+function dzl(id){$(id).classList.remove('over')}
+function dzd_img(e){e.preventDefault();dzl('dz-img');const f=e.dataTransfer.files[0];if(f)proc_img(f)}
+function dzd_xls(e){e.preventDefault();dzl('dz-xls');const f=e.dataTransfer.files[0];if(f)proc_data(f)}
+
+// ─── tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(id,btn){
+  ['i2d','d2i'].forEach(t=>{
+    const p=$('p-'+t);if(p){p.classList.remove('on');p.style.display='none'}
+  });
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const p=$('p-'+id);if(p){p.classList.add('on');p.style.display='contents'}
+}
+// init
+$('p-i2d').style.display='contents';
+$('p-d2i').style.display='none';
+
+// ─── mode ─────────────────────────────────────────────────────────────────────
+let mode='full';
+function set_mode(m){
+  mode=m;
+  ['full','pa'].forEach(x=>{
+    $('mc-'+x).classList.toggle('sel',x===m);
+  });
+  $('full-opts').classList.toggle('hidden',m!=='full');
+  $('pa-opts').classList.toggle('hidden',m!=='pa');
+  if(m==='pa'&&img_loaded) render_pa_grid();
+  $('pa-grid').style.display=(m==='pa'&&img_loaded)?'block':'none';
+  on_opts();
+}
+
+// ─── image ────────────────────────────────────────────────────────────────────
+let img_el=null,img_loaded=false,img_w=0,img_h=0;
+
+function load_img(e){if(e.target.files[0])proc_img(e.target.files[0])}
+function proc_img(file){
+  // basic validation
+  if(!file.type.startsWith('image/')&&!file.name.match(/\.(png|jpe?g|gif|bmp|webp|svg|ico|tiff?)$/i)){
+    ilog('log-i','❌ Not a recognised image format','err');return;
+  }
+  if(file.size>80*1024*1024){ilog('log-i','❌ File too large (>80 MB)','err');return;}
+  const reader=new FileReader();
+  reader.onerror=()=>ilog('log-i','❌ FileReader error','err');
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onerror=()=>ilog('log-i','❌ Image decode failed — try PNG or JPG','err');
+    img.onload=()=>{
+      img_el=img;img_w=img.naturalWidth;img_h=img.naturalHeight;img_loaded=true;
+      $('img-prev').src=ev.target.result;$('img-prev').style.display='block';
+      $('i-empty').classList.add('hidden');$('i-ready').classList.remove('hidden');
+      $('img-dim-badge').textContent=`${img_w} × ${img_h} · ${(file.size/1024).toFixed(1)} KB`;
+      $('btn-ci').style.display='';
+      ilog('log-i',`✓ Loaded: ${file.name} · ${img_w}×${img_h}`,'ok');
+      on_opts();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clr_img(){
+  img_el=null;img_loaded=false;img_w=0;img_h=0;
+  $('img-file').value='';$('img-prev').src='';$('img-prev').style.display='none';
+  $('i-empty').classList.remove('hidden');$('i-ready').classList.add('hidden');
+  $('btn-ci').style.display='none';
+  ['btn-xlsx','btn-csv','btn-json'].forEach(b=>$(b).disabled=true);
+  ['log-i','pw-i'].forEach(x=>{const e=$(x);e.style.display='none';if(e.classList.contains('lg'))e.innerHTML=''});
+  $('pa-grid').style.display='none';
+  $('stats-row').innerHTML='';$('limit-bar').style.display='none';$('rle-info').style.display='none';
+}
+
+// ─── dims ─────────────────────────────────────────────────────────────────────
+const XLIMIT=1048560;
+
+function get_dims(){
+  if(!img_loaded)return{w:0,h:0};
+  if(mode==='pa'){const s=parseInt($('pa-size').value)||32;return{w:s,h:s};}
+  const maxd=clamp(parseInt($('maxdim').value)||256,8,2000);
+  const sc=parseInt($('sc-range').value)/100;
+  let w=Math.round(img_w*sc),h=Math.round(img_h*sc);
+  const r=Math.min(maxd/w,maxd/h,1);
+  return{w:Math.max(1,Math.round(w*r)),h:Math.max(1,Math.round(h*r))};
+}
+
+function on_scale(){$('sc-out').textContent=$('sc-range').value;on_opts()}
+
+function on_opts(){
+  if(!img_loaded)return;
+  const{w,h}=get_dims();
+  const rle=$('use-rle').checked;
+  const total=w*h;
+  const est_rows=rle?Math.round(total*0.6):total; // conservative RLE estimate
+  const over=est_rows>=XLIMIT,big=est_rows>400000;
+
+  $('stats-row').innerHTML=`
+    <div class="st"><div class="stv">${img_w}×${img_h}</div><div class="stk">Original</div></div>
+    <div class="st"><div class="stv">${w}×${h}</div><div class="stk">Sampled</div></div>
+    <div class="st ${over?'warn':big?'warn':'ok'}"><div class="stv">${fmtN(est_rows)}</div><div class="stk">Est. rows</div></div>
+    <div class="st ${over?'warn':'ok'}"><div class="stv">${over?'SPLIT':'OK'}</div><div class="stk">Sheet status</div></div>
+  `;
+
+  const lb=$('limit-bar');
+  lb.style.display='flex';
+  if(over){lb.className='lb err';lb.textContent=`⚠ Exceeds Excel limit — will auto-split into ${Math.ceil(est_rows/XLIMIT)} sheets`}
+  else if(big){lb.className='lb warn';lb.textContent=`Large: ${fmtN(est_rows)} rows — may take a moment`}
+  else{lb.className='lb ok';lb.textContent=`✓ ${fmtN(est_rows)} rows — within single-sheet limit`}
+
+  if(rle){$('rle-info').style.display='block';$('rle-ratio').textContent='~60%'}
+  else{$('rle-info').style.display='none'}
+
+  if(mode==='pa'&&img_loaded){$('pa-grid').style.display='block';render_pa_grid(w,h)}
+  else{$('pa-grid').style.display='none'}
+
+  ['btn-xlsx','btn-csv','btn-json'].forEach(b=>$(b).disabled=false);
+}
+
+// ─── pixel art grid preview ───────────────────────────────────────────────────
+function render_pa_grid(w,h){
+  if(!img_loaded)return;
+  if(!w){const d=get_dims();w=d.w;h=d.h;}
+  const showG=$('show-grid').checked;
+  const cs=Math.min(10,Math.floor(380/Math.max(w,h)));
+  const gap=showG?1:0;
+  const c=$('gc');c.width=w*(cs+gap);c.height=h*(cs+gap);
+  const ctx=c.getContext('2d');
+  const hc=$('hidden-canvas');hc.width=w;hc.height=h;
+  const hctx=hc.getContext('2d');
+  hctx.drawImage(img_el,0,0,w,h);
+  const d=hctx.getImageData(0,0,w,h).data;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=(y*w+x)*4;
+    ctx.fillStyle=`rgb(${d[i]},${d[i+1]},${d[i+2]})`;
+    ctx.fillRect(x*(cs+gap),y*(cs+gap),cs,cs);
+  }
+  if(showG){
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    for(let x=0;x<w;x++)ctx.fillRect(x*(cs+gap)+cs,0,1,c.height);
+    for(let y=0;y<h;y++)ctx.fillRect(0,y*(cs+gap)+cs,c.width,1);
+  }
+  $('pa-badge').textContent=`${w}×${h} · ${w*h} pixels`;
+  const maxDisp=Math.min(560,window.innerWidth-80);
+  const sc=Math.min(1,maxDisp/c.width);
+  c.style.width=Math.round(c.width*sc)+'px';c.style.height=Math.round(c.height*sc)+'px';
+}
+
+// ─── rasterise ────────────────────────────────────────────────────────────────
+function rasterise(w,h){
+  const hc=$('hidden-canvas');hc.width=w;hc.height=h;
+  const ctx=hc.getContext('2d');ctx.drawImage(img_el,0,0,w,h);
+  return ctx.getImageData(0,0,w,h).data;
+}
+
+// ─── build rows ───────────────────────────────────────────────────────────────
+function build_rows(px,w,h,alpha,rle){
+  const hdr=alpha?['SL No.','X','Y','R','G','B','A','HEX','HEX_RGBA','Count']:['SL No.','X','Y','R','G','B','HEX','Count'];
+  const rows=[hdr];let sl=1;
+  const mkRow=(sl,x,y,r,g,b,a,cnt)=>{
+    const hex='#'+h2(r)+h2(g)+h2(b);
+    return alpha?[sl,x,y,r,g,b,a,hex,'#'+h2(r)+h2(g)+h2(b)+h2(a),cnt]:[sl,x,y,r,g,b,hex,cnt];
+  };
+  if(!rle){
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;rows.push(mkRow(sl++,x,y,px[i],px[i+1],px[i+2],px[i+3],1));
+    }
+  } else {
+    let rr,rg,rb,ra,cnt=0,sx,sy;
+    const flush=()=>{if(cnt>0){rows.push(mkRow(sl++,sx,sy,rr,rg,rb,ra,cnt));cnt=0}};
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;const r=px[i],g=px[i+1],b=px[i+2],a=px[i+3];
+      if(cnt>0&&r===rr&&g===rg&&b===rb&&a===ra){cnt++}
+      else{flush();rr=r;rg=g;rb=b;ra=a;sx=x;sy=y;cnt=1}
+    }
+    flush();
+  }
+  return rows;
+}
+
+// ─── progress / log ───────────────────────────────────────────────────────────
+function sp(pfx,pct,lbl){
+  $(pfx+'-wrap')?$(pfx+'-wrap').style.display='block':null;
+  $('pw-'+(pfx==='i'?'i':'x')).style.display='block';
+  $('pf-'+pfx).style.width=pct+'%';$('pp-'+pfx).textContent=Math.round(pct)+'%';
+  if(lbl)$('pl-'+pfx).textContent=lbl;
+}
+function ilog(id,msg,type=''){const e=$(id);e.style.display='block';e.innerHTML+=`<div class="${type}">${msg}</div>`;e.scrollTop=e.scrollHeight}
+
+// ─── EXPORT EXCEL ─────────────────────────────────────────────────────────────
+async function exp_xlsx(){
+  if(!img_loaded)return;
+  set_exp_btns(true);$('log-i').innerHTML='';$('log-i').style.display='none';
+  sp('i',5,'Rasterising image…');await sleep(10);
+  const{w,h}=get_dims();
+  const alpha=$('inc-alpha').checked,rle=$('use-rle').checked;
+  const px=rasterise(w,h);
+  sp('i',20,'Building rows…');await sleep(10);
+  const rows=build_rows(px,w,h,alpha,rle);
+  const total=rows.length-1;
+  ilog('log-i',`${fmtN(total)} rows · canvas ${w}×${h}${rle?' · RLE':''}`,'ok');
+  sp('i',50,'Creating workbook…');await sleep(10);
+  const wb=XLSX.utils.book_new();
+  const hdr=rows[0];
+  const SLIMIT=1048560;
+  let si=1;
+  for(let s=1;s<rows.length;s+=SLIMIT){
+    const chunk=[hdr,...rows.slice(s,s+SLIMIT)];
+    const ws=XLSX.utils.aoa_to_sheet(chunk);
+    ws['!cols']=[{wch:9},{wch:6},{wch:6},{wch:5},{wch:5},{wch:5},...(alpha?[{wch:5}]:[]),{wch:9},...(alpha?[{wch:11}]:[]),{wch:7}];
+    XLSX.utils.book_append_sheet(wb,ws,si===1?'Pixels':`Pixels_${si}`);
+    si++;
+    sp('i',50+(s/rows.length*35),`Writing sheet ${si-1}…`);await sleep(0);
+  }
+  if(si>2)ilog('log-i',`Auto-split into ${si-1} sheets (row limit exceeded)`,'warn');
+  // meta
+  const meta=XLSX.utils.aoa_to_sheet([
+    ['Pixel Studio v2 — Export Metadata'],[],
+    ['Source image',`${img_w}×${img_h}`],['Sampled',`${w}×${h}`],
+    ['Total pixels',w*h],['Data rows',total],['RLE',rle?'Yes':'No'],['Alpha',alpha?'Yes':'No'],
+    ['Sheets',si-1],['Exported',new Date().toISOString()],[],
+    ['Column guide'],['SL No.','Row number (1-based)'],['X','Horizontal (0=left)'],
+    ['Y','Vertical (0=top)'],['R','Red 0–255'],['G','Green 0–255'],['B','Blue 0–255'],
+    ...(alpha?[['A','Alpha 0–255 (255=opaque)']]:[]),
+    ['HEX','#RRGGBB'],['Count','RLE run length (1 if RLE disabled)'],
+    [],['Reconstruct'],['Upload this file in the Data→Image tab']
+  ]);
+  meta['!cols']=[{wch:22},{wch:44}];
+  XLSX.utils.book_append_sheet(wb,meta,'Metadata');
+  sp('i',92,'Saving…');await sleep(10);
+  XLSX.writeFile(wb,`pixels_${w}x${h}${rle?'_rle':''}.xlsx`);
+  sp('i',100,'Done!');ilog('log-i',`✅ Excel saved — ${si-1} sheet(s)`,'ok');
+  set_exp_btns(false);
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+async function exp_csv(){
+  if(!img_loaded)return;set_exp_btns(true);
+  $('log-i').innerHTML='';$('log-i').style.display='none';
+  sp('i',5,'Building CSV…');await sleep(10);
+  const{w,h}=get_dims();
+  const px=rasterise(w,h);
+  const rows=build_rows(px,w,h,$('inc-alpha').checked,$('use-rle').checked);
+  sp('i',65,'Encoding…');await sleep(10);
+  const csv=rows.map(r=>r.map(v=>typeof v==='string'&&v.includes(',')? `"${v}"`:v).join(',')).join('\n');
+  dl_blob(new Blob([csv],{type:'text/csv'}),`pixels_${w}x${h}.csv`);
+  sp('i',100,'Done!');ilog('log-i',`✅ CSV saved — ${fmtN(rows.length-1)} rows`,'ok');
+  set_exp_btns(false);
+}
+
+// ─── EXPORT JSON ──────────────────────────────────────────────────────────────
+async function exp_json(){
+  if(!img_loaded)return;set_exp_btns(true);
+  $('log-i').innerHTML='';$('log-i').style.display='none';
+  sp('i',5,'Building JSON…');await sleep(10);
+  const{w,h}=get_dims();
+  const px=rasterise(w,h);
+  const rows=build_rows(px,w,h,$('inc-alpha').checked,$('use-rle').checked);
+  const hdr=rows[0];
+  sp('i',55,'Encoding objects…');await sleep(10);
+  const pixels=rows.slice(1).map(r=>{const o={};hdr.forEach((k,i)=>o[k]=r[i]);return o});
+  const payload={meta:{width:w,height:h,originalWidth:img_w,originalHeight:img_h,
+    rle:$('use-rle').checked,alpha:$('inc-alpha').checked,rows:pixels.length,
+    exportedAt:new Date().toISOString()},pixels};
+  dl_blob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),`pixels_${w}x${h}.json`);
+  sp('i',100,'Done!');ilog('log-i',`✅ JSON saved — ${fmtN(pixels.length)} objects`,'ok');
+  set_exp_btns(false);
+}
+
+function set_exp_btns(v){['btn-xlsx','btn-csv','btn-json'].forEach(b=>$(b).disabled=v)}
+function dl_blob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+
+// ═══════════════════════════════ DATA → IMAGE ══════════════════════════════════
+let xls_pixels=null;
+
+function load_data(e){if(e.target.files[0])proc_data(e.target.files[0])}
+
+async function proc_data(file){
+  xls_pixels=null;
+  $('btn-rebuild').disabled=true;$('btn-png').disabled=true;$('btn-jpg').disabled=true;
+  $('log-x').innerHTML='';$('x-ready').classList.add('hidden');$('btn-cx').style.display='';
+  sp('x',5,'Reading file…');
+  const ext=file.name.split('.').pop().toLowerCase();
+  try{
+    let rows;
+    if(ext==='json'){
+      const txt=await file.text();
+      const data=JSON.parse(txt);
+      rows=Array.isArray(data)?data:(data.pixels||[]);
+    } else if(ext==='csv'){
+      const txt=await file.text();
+      const lines=txt.trim().split('\n');
+      const hdr=lines[0].split(',').map(s=>s.trim());
+      rows=lines.slice(1).map(l=>{const v=l.split(',');const o={};hdr.forEach((k,i)=>o[k]=(v[i]||'').trim());return o});
+    } else {
+      const buf=await file.arrayBuffer();
+      sp('x',20,'Parsing workbook…');
+      const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+      rows=[];
+      // aggregate all Pixel sheets
+      let first=true;
+      for(const n of wb.SheetNames){
+        if(!n.startsWith('Pixel'))continue;
+        const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:''});
+        if(first){rows=r;first=false}else rows=rows.concat(r);
+      }
+      if(!rows.length) rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      ilog('log-x',`${fmtN(rows.length)} rows from ${wb.SheetNames.filter(n=>n.startsWith('Pixel')).length||1} sheet(s)`,'ok');
+    }
+    parse_pixel_rows(rows);
+  } catch(e){ilog('log-x','❌ '+e.message,'err')}
+}
+
+function fc(keys,...names){return keys.find(k=>names.some(n=>k.trim().toUpperCase()===n.toUpperCase()))||null}
+
+function parse_pixel_rows(rows){
+  if(!rows.length){ilog('log-x','❌ No rows found','err');return}
+  sp('x',40,'Parsing columns…');
+  const keys=Object.keys(rows[0]);
+  const cX=fc(keys,'X','x_pos','COL');
+  const cY=fc(keys,'Y','y_pos','ROW');
+  const cR=fc(keys,'R','RED');const cG=fc(keys,'G','GREEN');const cB=fc(keys,'B','BLUE');
+  const cA=fc(keys,'A','ALPHA');
+  const cHex=fc(keys,'HEX','HEX_COLOR','COLOR','COLOUR');
+  const cCnt=fc(keys,'COUNT','RLE','RUN');
+  if(!cX||!cY){ilog('log-x','❌ Cannot find X and Y columns. Keys: '+keys.join(', '),'err');return}
+  if(!cR&&!cHex){ilog('log-x','❌ Cannot find R,G,B or HEX columns','err');return}
+  ilog('log-x',`Columns: X=${cX} Y=${cY} R=${cR||'—'} G=${cG||'—'} B=${cB||'—'} HEX=${cHex||'—'} Count=${cCnt||'—'}`,'ok');
+  sp('x',55,'Mapping pixels…');
+  let maxX=0,maxY=0;const pixels=[];let hasRle=false;
+  for(const row of rows){
+    const x=parseInt(row[cX]),y=parseInt(row[cY]);
+    if(isNaN(x)||isNaN(y)||x<0||y<0)continue;
+    let r=0,g=0,b=0,a=255;
+    if(cR&&cG&&cB){
+      r=clamp(parseInt(row[cR])||0,0,255);
+      g=clamp(parseInt(row[cG])||0,0,255);
+      b=clamp(parseInt(row[cB])||0,0,255);
+      if(cA)a=clamp(parseInt(row[cA])||255,0,255);
+    } else if(cHex){
+      const hx=String(row[cHex]).replace(/^#/,'').replace(/[^0-9a-fA-F]/g,'');
+      r=parseInt(hx.slice(0,2),16)||0;g=parseInt(hx.slice(2,4),16)||0;b=parseInt(hx.slice(4,6),16)||0;
+      if(hx.length>=8)a=parseInt(hx.slice(6,8),16)||255;
+    }
+    const cnt=cCnt?Math.max(1,parseInt(row[cCnt])||1):1;
+    if(cnt>1)hasRle=true;
+    pixels.push({x,y,r,g,b,a,cnt});
+    if(x>maxX)maxX=x;if(y>maxY)maxY=y;
+  }
+  xls_pixels={pixels,w:maxX+1,h:maxY+1,hasRle};
+  const tot=pixels.length;
+  ilog('log-x',`${fmtN(tot)} pixel records · canvas ${maxX+1}×${maxY+1}${hasRle?' · RLE mode':''}`,'ok');
+  $('xls-sr').innerHTML=`
+    <div class="st"><div class="stv">${maxX+1}×${maxY+1}</div><div class="stk">Canvas</div></div>
+    <div class="st ok"><div class="stv">${fmtN(tot)}</div><div class="stk">Records</div></div>
+    <div class="st"><div class="stv">${hasRle?'RLE':'Full'}</div><div class="stk">Mode</div></div>
+    <div class="st ok"><div class="stv">✓</div><div class="stk">Ready</div></div>
+  `;
+  $('x-ready').classList.remove('hidden');
+  $('btn-rebuild').disabled=false;
+  sp('x',100,'Ready to rebuild');
+}
+
+async function rebuild(){
+  if(!xls_pixels)return;
+  $('btn-rebuild').disabled=true;
+  const{pixels,w,h,hasRle}=xls_pixels;
+  const up=clamp(parseInt($('upscale').value)||1,1,32);
+  const cw=w*up,ch=h*up;
+  $('rc-badge').textContent=`${cw}×${ch}${up>1?` (${up}× upscale)`:''}`;
+  const rc=$('result-canvas');rc.width=cw;rc.height=ch;
+  const ctx=rc.getContext('2d');ctx.clearRect(0,0,cw,ch);
+  const idata=ctx.createImageData(cw,ch);const d=idata.data;
+  const CHUNK=8000;
+  if(!hasRle){
+    for(let i=0;i<pixels.length;i++){
+      const{x,y,r,g,b,a}=pixels[i];
+      for(let dy=0;dy<up;dy++)for(let dx=0;dx<up;dx++){
+        const idx=((y*up+dy)*cw+(x*up+dx))*4;d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=a;
+      }
+      if(i%CHUNK===0&&i>0){sp('x',i/pixels.length*90,'Drawing…');await sleep(0)}
+    }
+  } else {
+    let cx2=0,cy2=0;
+    for(let i=0;i<pixels.length;i++){
+      const{x,y,r,g,b,a,cnt}=pixels[i];
+      // trust stored x,y as start of run
+      cx2=x;cy2=y;
+      for(let c=0;c<cnt;c++){
+        if(cy2>=h)break;
+        for(let dy=0;dy<up;dy++)for(let dx=0;dx<up;dx++){
+          const idx=((cy2*up+dy)*cw+(cx2*up+dx))*4;d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=a;
+        }
+        cx2++;if(cx2>=w){cx2=0;cy2++}
+      }
+      if(i%CHUNK===0&&i>0){sp('x',i/pixels.length*90,'Expanding RLE…');await sleep(0)}
+    }
+  }
+  ctx.putImageData(idata,0,0);
+  const maxD=Math.min(660,window.innerWidth-60);
+  const sc=Math.min(1,maxD/cw);
+  rc.style.width=Math.round(cw*sc)+'px';rc.style.height=Math.round(ch*sc)+'px';
+  sp('x',100,'Done!');ilog('log-x',`✅ Rebuilt ${cw}×${ch}`,'ok');
+  $('btn-rebuild').disabled=false;$('btn-png').disabled=false;$('btn-jpg').disabled=false;
+}
+
+function dl_canvas(fmt){
+  const rc=$('result-canvas');
+  const a=document.createElement('a');
+  a.href=rc.toDataURL(fmt==='png'?'image/png':'image/jpeg',0.97);
+  a.download='reconstructed.'+fmt;a.click();
+}
+
+function clr_xls(){
+  xls_pixels=null;$('xls-file').value='';
+  $('log-x').innerHTML='';$('log-x').style.display='none';
+  $('pw-x').style.display='none';$('x-ready').classList.add('hidden');
+  $('btn-rebuild').disabled=true;$('btn-png').disabled=true;$('btn-jpg').disabled=true;
+  $('btn-cx').style.display='none';
+}
+</script>
+</body>
+</html>
