@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Studio v5 | Pro Toolset</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ════════════════════════════════════════
+   THEME TOKENS
+════════════════════════════════════════ */
+:root {
+  --purple:      #7F77DD;
+  --purple-dark: #645CB3;
+  --purple-soft: rgba(127,119,221,0.12);
+  --accent:      #e8ff47;
+  --accent-dim:  rgba(232,255,71,0.07);
+}
+
+/* ── DARK (default) ── */
+[data-theme="dark"] {
+  --bg:       #09090c;
+  --hd-bg:    #09090c;
+  --hd-bd:    rgba(255,255,255,0.09);
+  --s1:       #111116;
+  --s2:       #18181f;
+  --bd:       rgba(255,255,255,0.07);
+  --text:     #ffffff;
+  --text2:    rgba(255,255,255,0.55);
+  --text3:    rgba(255,255,255,0.28);
+  --tab-idle: #475569;
+  --inp-bg:   #18181f;
+  --inp-bd:   rgba(255,255,255,0.1);
+  --sep:      rgba(255,255,255,0.06);
+  --card-bg:  #111116;
+  --card-bd:  rgba(255,255,255,0.07);
+  --card-sel: var(--purple);
+  --g-bg:     rgba(59,109,17,0.18);
+  --g-text:   #7ecb42;
+  --a-bg:     rgba(133,79,11,0.2);
+  --a-text:   #f5a623;
+  --r-bg:     rgba(163,45,45,0.2);
+  --r-text:   #f87171;
+  --idle-bg:  rgba(255,255,255,0.06);
+  --idle-text:rgba(255,255,255,0.4);
+}
+
+/* ── LIGHT ── */
+[data-theme="light"] {
+  --bg:       #f8fafc;
+  --hd-bg:    #09090c;
+  --hd-bd:    rgba(255,255,255,0.09);
+  --s1:       #ffffff;
+  --s2:       #f1f5f9;
+  --bd:       rgba(0,0,0,0.08);
+  --text:     #0f172a;
+  --text2:    #475569;
+  --text3:    #94a3b8;
+  --tab-idle: #94a3b8;
+  --inp-bg:   #f8fafc;
+  --inp-bd:   #cbd5e1;
+  --sep:      #e2e8f0;
+  --card-bg:  #ffffff;
+  --card-bd:  #e2e8f0;
+  --card-sel: var(--purple);
+  --g-bg:     #eaf3de;
+  --g-text:   #3B6D11;
+  --a-bg:     #faeeda;
+  --a-text:   #854F0B;
+  --r-bg:     #fcebeb;
+  --r-text:   #A32D2D;
+  --idle-bg:  #f1f5f9;
+  --idle-text:#64748b;
+}
+
+/* ════════════════════════════════════════
+   RESET + BASE
+════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+.syne { font-family: 'Syne', sans-serif; font-weight: 800; }
+
+/* ════════════════════════════════════════
+   HEADER — pure black, v4 style
+════════════════════════════════════════ */
+.header {
+  background: var(--hd-bg);
+  border-bottom: 1px solid var(--hd-bd);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+}
+
+/* Logo */
+.logo-wrap { display: flex; align-items: center; gap: 0; }
+.logo-text {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -1px;
+  color: #fff;
+}
+.logo-text .hl { color: var(--accent); }
+.version-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.35);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  margin-left: 10px;
+  text-transform: uppercase;
+}
+
+.header-right { display: flex; align-items: center; gap: 18px; }
+
+/* Blinking dot toggle */
+.blink-dot-wrap {
+  position: relative;
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.blink-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: background 0.3s;
+}
+[data-theme="dark"]  .blink-dot { background: var(--accent); animation: blink-dark 2s ease-in-out infinite; }
+[data-theme="light"] .blink-dot { background: #facc15;       animation: blink-yellow 2s ease-in-out infinite; }
+
+@keyframes blink-dark {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(232,255,71,0.6); }
+  50%      { opacity: 0.55; box-shadow: 0 0 0 5px rgba(232,255,71,0); }
+}
+@keyframes blink-yellow {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(250,204,21,0.7); }
+  50%      { opacity: 0.5; box-shadow: 0 0 0 6px rgba(250,204,21,0); }
+}
+
+/* Connect button */
+.connect-btn {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+  border: none;
+  border-bottom: 1px solid #fff;
+  padding-bottom: 1px;
+  background: none;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.connect-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ════════════════════════════════════════
+   TABS
+════════════════════════════════════════ */
+.main { max-width: 980px; margin: 0 auto; padding: 30px 24px; }
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--sep);
+  margin-bottom: 36px;
+}
+.tab-btn {
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--tab-idle);
+  padding: 14px 28px 14px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text2); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ════════════════════════════════════════
+   DROP ZONE
+════════════════════════════════════════ */
+.drop-zone {
+  border: 2px dashed var(--bd);
+  background: var(--s1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  transition: border-color 0.25s, background 0.25s, transform 0.2s;
+  margin-bottom: 40px;
+}
+.drop-zone:hover { border-color: rgba(232,255,71,0.35); }
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  transform: scale(0.992);
+}
+.bg-pills {
+  position: absolute; inset: 0;
+  pointer-events: none; overflow: hidden;
+  opacity: 0.06;
+  display: flex; flex-wrap: wrap;
+  gap: 18px; padding: 12px;
+  font-size: 14px; color: var(--text);
+}
+.plus-icon {
+  font-size: 40px;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: inline-block;
+  position: relative; z-index: 1;
+  transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.drop-zone:hover .plus-icon { transform: rotate(90deg); }
+.drop-zone h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+  position: relative; z-index: 1;
+}
+.drop-zone p {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text3);
+  position: relative; z-index: 1;
+}
+
+/* ════════════════════════════════════════
+   TOOL GRID
+════════════════════════════════════════ */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 14px;
+}
+/* section-label kept for possible future use */
+
+/* live badge used in tool cards */
+.live-badge {
+  font-size: 8px; font-weight: 700;
+  background: var(--accent); color: #000;
+  padding: 1px 6px; border-radius: 2px;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* ════════════════════════════════════════
+   COMPRESS PANEL (inline, toggles open)
+════════════════════════════════════════ */
+#compressPanel {
+  display: none;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+#compressPanel.open { display: block; }
+
+.cp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--bd);
+}
+.cp-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.cp-title i { color: var(--accent); }
+.cp-close {
+  width: 28px; height: 28px;
+  border: 1px solid var(--bd); background: var(--s2);
+  color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.cp-close:hover { border-color: #f87171; color: #f87171; }
+
+.cp-body { display: grid; grid-template-columns: 1fr 300px; }
+@media(max-width:700px){ .cp-body { grid-template-columns: 1fr; } }
+
+/* Left: file list */
+.cp-files {
+  padding: 16px;
+  border-right: 1px solid var(--bd);
+  min-height: 260px;
+}
+.cp-dz {
+  border: 2px dashed var(--bd);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  position: relative;
+}
+.cp-dz input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.cp-dz:hover, .cp-dz.drag { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.cp-dz i { font-size: 22px; display: block; margin-bottom: 7px; color: var(--accent); }
+
+.cards-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.fcard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-bd);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+.fcard:hover { border-color: rgba(127,119,221,0.4); }
+.fcard.sel { border: 1.5px solid var(--purple); }
+.fcard-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.fthumb { width: 40px; height: 40px; object-fit: cover; flex-shrink: 0; background: var(--s2); }
+.finfo { flex: 1; min-width: 0; }
+.fname { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); letter-spacing: 0.3px; }
+.fmeta { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.factions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.fstatus { font-size: 9px; font-weight: 700; padding: 3px 8px; letter-spacing: 0.5px; text-transform: uppercase; }
+.s-idle { background: var(--idle-bg); color: var(--idle-text); }
+.s-proc { background: var(--a-bg); color: var(--a-text); }
+.s-done { background: var(--g-bg); color: var(--g-text); }
+.s-fail { background: var(--r-bg); color: var(--r-text); }
+.fdelete {
+  width: 24px; height: 24px;
+  border: 1px solid var(--bd); background: transparent;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--text3);
+  transition: border-color 0.15s, color 0.15s;
+}
+.fdelete:hover { border-color: #f87171; color: #f87171; }
+
+.proc-bar {
+  padding: 12px 16px;
+  border-top: 1px solid var(--bd);
+}
+
+/* Right: inspector */
+.cp-inspector { padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; max-height: 520px; }
+
+.insp-empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text3);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.flabel {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 6px;
+  display: block;
+}
+
+/* Preview card */
+.prev-card {
+  background: var(--s2);
+  border: 1px solid var(--bd);
+  padding: 12px 14px;
+}
+.prev-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.prev-num { font-size: 15px; font-weight: 700; font-family: 'Syne', sans-serif; }
+.prev-arr { font-size: 13px; color: var(--text3); }
+.prev-new { font-size: 15px; font-weight: 700; font-family: 'Syne', sans-serif; }
+.prev-badge {
+  font-size: 9px; font-weight: 700;
+  padding: 3px 10px;
+  letter-spacing: 1px; text-transform: uppercase;
+  display: inline-block; margin-top: 4px;
+}
+.badge-green { background: var(--g-bg); color: var(--g-text); }
+.badge-amber { background: var(--a-bg); color: var(--a-text); }
+.badge-red   { background: var(--r-bg); color: var(--r-text); }
+
+/* Presets */
+.presets { display: flex; gap: 5px; flex-wrap: wrap; }
+.preset {
+  padding: 5px 11px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid var(--bd);
+  background: var(--s2); color: var(--text2);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.preset:hover { border-color: var(--purple); color: var(--purple); }
+.preset.active { background: var(--purple-soft); border-color: var(--purple); color: var(--purple); }
+
+/* Target input */
+.target-row { display: flex; gap: 8px; align-items: center; }
+.target-input {
+  flex: 1; padding: 7px 10px;
+  font-size: 13px; font-family: 'Space Mono', monospace;
+  border: 1px solid var(--inp-bd);
+  background: var(--inp-bg); color: var(--text);
+  outline: none; transition: border-color 0.15s;
+}
+.target-input:focus { border-color: var(--purple); }
+.target-unit { font-size: 11px; color: var(--text3); }
+
+/* Quality slider */
+.quality-val { font-size: 13px; font-weight: 700; color: var(--purple); font-family: 'Syne', sans-serif; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%; height: 3px;
+  background: var(--bd); outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  background: var(--purple);
+  cursor: grab; border-radius: 0;
+  box-shadow: 0 0 6px rgba(127,119,221,0.5);
+}
+
+/* Format pills */
+.fmt-pills { display: flex; gap: 5px; }
+.fpill {
+  padding: 6px 14px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  border: 1px solid var(--bd);
+  background: var(--s2); color: var(--text2);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.fpill:hover { border-color: var(--purple); color: var(--purple); }
+.fpill.active { background: var(--purple-soft); border-color: var(--purple); color: var(--purple); }
+
+/* Toggle row */
+.togrow { display: flex; align-items: center; justify-content: space-between; }
+.toglbl { font-size: 11px; color: var(--text2); letter-spacing: 0.5px; }
+.tog {
+  width: 34px; height: 18px;
+  border-radius: 9px; background: var(--bd);
+  position: relative; cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s;
+}
+.tog.on { background: var(--purple); }
+.tog::after {
+  content: ''; width: 13px; height: 13px;
+  border-radius: 50%; background: #fff;
+  position: absolute; top: 2.5px; left: 2.5px;
+  transition: left 0.15s;
+}
+.tog.on::after { left: 18.5px; }
+
+/* Action btns */
+.action-btn {
+  width: 100%; padding: 11px;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.2s;
+  border: none;
+}
+.btn-process {
+  background: var(--purple); color: #fff;
+}
+.btn-process:hover:not(:disabled) { background: var(--purple-dark); transform: skew(-3deg); }
+.btn-process:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-download {
+  background: var(--g-bg); color: var(--g-text);
+  border: 1px solid var(--g-text) !important;
+  display: block; text-align: center; text-decoration: none;
+}
+.btn-download:hover { opacity: 0.85; }
+
+/* cp sep */
+.c-sep { height: 1px; background: var(--bd); }
+
+/* Toast */
+.toast-wrap {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 500; display: flex; flex-direction: column;
+  gap: 6px; align-items: center; pointer-events: none;
+}
+.toast {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  padding: 10px 16px;
+  font-size: 11px; letter-spacing: 0.5px;
+  display: flex; align-items: flex-start; gap: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  animation: slidein .25s ease;
+  pointer-events: auto;
+  max-width: 420px;
+  color: var(--text);
+}
+.toast.success { border-color: var(--g-text); }
+.toast.error   { border-color: var(--r-text); }
+.toast.warn    { border-color: var(--a-text); }
+.toast-icon { font-size: 15px; flex-shrink: 0; line-height: 1.3; }
+.toast-text { flex: 1; line-height: 1.5; }
+.toast-close { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--text3); }
+@keyframes slidein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ════════════════════════════════════════
+   QUEUE (main dropzone uploads)
+════════════════════════════════════════ */
+#mainQueue { display: none; margin-bottom: 40px; }
+.queue-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bd);
+  margin-bottom: 10px;
+}
+.queue-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.queue-count {
+  background: var(--accent); color: #000;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 7px; margin-left: 8px;
+}
+.clear-btn {
+  font-size: 10px; font-weight: 700;
+  color: #f87171; letter-spacing: 1px;
+  text-transform: uppercase;
+  background: none; border: none; cursor: pointer;
+}
+.file-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px;
+  background: var(--s2); border: 1px solid var(--bd);
+  margin-bottom: 5px;
+  transition: border-color 0.2s;
+}
+.file-row:hover { border-color: rgba(232,255,71,0.25); }
+.file-ext {
+  width: 34px; height: 34px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(232,255,71,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+  color: var(--accent); letter-spacing: 1px; flex-shrink: 0;
+}
+.file-name {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text); max-width: 200px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file-size { font-size: 9px; color: var(--text3); margin-top: 2px; }
+.progress-bar { flex: 1; height: 2px; background: var(--bd); overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); width: 100%; transition: width 1s; }
+.remove-btn {
+  background: none; border: none;
+  color: var(--text3); cursor: pointer;
+  font-size: 12px; padding: 4px;
+  transition: color 0.2s;
+}
+.remove-btn:hover { color: #f87171; }
+
+/* ════════════════════════════════════════
+   PIXEL ART MODAL
+════════════════════════════════════════ */
+#pixelModal {
+  display: none; position: fixed; inset: 0;
+  z-index: 300;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+#pixelModal.open { display: flex; }
+
+.modal-panel {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  width: min(960px,98vw);
+  max-height: 92vh; overflow-y: auto;
+  display: grid; grid-template-columns: 1fr 272px;
+}
+@media(max-width:720px){ .modal-panel{grid-template-columns:1fr;} .controls-side{border-left:none;border-top:1px solid var(--bd);} }
+
+.canvas-side { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.modal-top { display: flex; align-items: center; justify-content: space-between; }
+.modal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-title i { color: var(--accent); }
+.modal-close {
+  width: 28px; height: 28px;
+  border: 1px solid var(--bd); background: var(--s2);
+  color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: border-color 0.2s, color 0.2s;
+}
+.modal-close:hover { border-color: #f87171; color: #f87171; }
+
+.canvas-wrapper {
+  background: repeating-conic-gradient(var(--s2) 0% 25%, var(--s1) 0% 50%) 0 0 / 16px 16px;
+  border: 1px solid var(--bd);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 300px; position: relative; overflow: hidden;
+}
+#pixelCanvas { max-width:100%; max-height:440px; object-fit:contain; display:none; image-rendering:pixelated; }
+.canvas-ph { text-align:center; color:var(--text3); }
+.canvas-ph i { font-size:36px; margin-bottom:10px; display:block; color:rgba(232,255,71,0.3); }
+.canvas-ph p { font-size:10px; letter-spacing:2px; text-transform:uppercase; }
+
+.modal-dz {
+  border: 2px dashed var(--bd);
+  padding: 18px; text-align: center; cursor: pointer;
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text3);
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.modal-dz:hover { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+.modal-dz i { font-size: 18px; display: block; margin-bottom: 5px; }
+
+.ba-btns { display: flex; gap: 5px; }
+.ba-btn {
+  flex: 1; padding: 8px;
+  font-family: 'Syne', sans-serif;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  border: 1px solid var(--bd); background: var(--s2);
+  color: var(--text3); cursor: pointer;
+  transition: all 0.2s;
+}
+.ba-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ba-btn.active { border-color: var(--accent); color: #000; background: var(--accent); }
+
+.controls-side {
+  border-left: 1px solid var(--bd);
+  padding: 22px 16px;
+  display: flex; flex-direction: column; gap: 20px;
+  overflow-y: auto;
+}
+.ctrl-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 9px; display: block;
+}
+.range-vals { display:flex; justify-content:space-between; font-size:9px; color:var(--text3); margin-top:4px; letter-spacing:1px; text-transform:uppercase; }
+.palette-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+.swatch { aspect-ratio:1; cursor:pointer; border:2px solid transparent; transition:transform 0.15s,border-color 0.15s; }
+.swatch:hover { transform:scale(1.12); }
+.swatch.active { border-color:var(--accent); transform:scale(1.08); }
+.effect-toggle {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px; border:1px solid var(--bd); background:var(--s2);
+  cursor:pointer;
+  font-family:'Syne',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; color:var(--text3);
+  transition:border-color 0.2s,color 0.2s;
+}
+.effect-toggle:hover { border-color:rgba(232,255,71,0.3); }
+.effect-toggle.on { border-color:var(--accent); color:var(--accent); }
+.toggle-pill { width:28px; height:15px; border-radius:8px; background:var(--bd); position:relative; transition:background 0.2s; flex-shrink:0; }
+.effect-toggle.on .toggle-pill { background:var(--accent); }
+.toggle-pill::after { content:''; position:absolute; top:2.5px; left:2.5px; width:10px; height:10px; border-radius:50%; background:#fff; transition:left 0.2s; }
+.effect-toggle.on .toggle-pill::after { left:15.5px; background:#000; }
+
+.format-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.fmt-btn {
+  padding:8px; font-family:'Syne',sans-serif;
+  font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  border:1px solid var(--bd); background:var(--s2); color:var(--text3);
+  cursor:pointer; transition:all 0.2s;
+}
+.fmt-btn:hover { border-color:rgba(232,255,71,0.4); color:var(--text); }
+.fmt-btn.active { border-color:var(--accent); color:#000; background:var(--accent); }
+
+.dl-btn {
+  width:100%; padding:13px;
+  font-family:'Syne',sans-serif;
+  font-size:12px; font-weight:800;
+  letter-spacing:3px; text-transform:uppercase;
+  background:var(--accent); color:#000; border:none;
+  cursor:pointer; margin-top:auto;
+  transition:transform 0.15s,box-shadow 0.15s,opacity 0.2s;
+}
+.dl-btn:hover:not(:disabled) { transform:skew(-4deg); box-shadow:4px 4px 0 rgba(255,255,255,0.12); }
+.dl-btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-thumb { background:var(--bd); }
+
+canvas#offscreen { display: none; }
+
+/* ════════════════════════════════════════
+   TOOL ROWS — Cons-style with yellow glow
+════════════════════════════════════════ */
+.row-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 4px; text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 14px;
+}
+
+.tool-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+@media(max-width:640px){ .tool-row { grid-template-columns: 1fr; } }
+
+.tool-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+/* Yellow glow on hover */
+.tool-card:hover {
+  border-color: rgba(232,255,71,0.45);
+  background: var(--s2);
+  box-shadow:
+    0 0 0 1px rgba(232,255,71,0.12),
+    0 4px 24px rgba(232,255,71,0.10),
+    inset 0 0 20px rgba(232,255,71,0.03);
+  transform: translateY(-2px);
+}
+/* Subtle accent sweep on hover */
+.tool-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 50%, rgba(232,255,71,0.06) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.tool-card:hover::before { opacity: 1; }
+
+/* Coloured icon box */
+.tc-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: var(--ig);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--ic);
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s;
+}
+.tool-card:hover .tc-icon {
+  background: var(--ic);
+  color: #fff;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ic) 50%, transparent);
+}
+
+.tc-info { display: flex; flex-direction: column; gap: 3px; }
+.tc-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 800;
+  color: var(--text);
+  display: flex; align-items: center; gap: 6px;
+}
+.tc-sub {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: 'Space Mono', monospace;
+}
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+.site-footer {
+  background: var(--hd-bg);
+  border-top: 1px solid var(--hd-bd);
+  padding: 28px 0 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 60px;
+}
+
+.footer-icons {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.footer-icon-btn {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  color: rgba(255,255,255,0.28);
+  font-size: 16px;
+  text-decoration: none;
+  transition: color 0.2s, transform 0.2s, text-shadow 0.2s;
+  position: relative;
+}
+.footer-icon-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,255,71,0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.footer-icon-btn:hover {
+  color: var(--accent);
+  transform: translateY(-3px);
+  text-shadow: 0 0 12px rgba(232,255,71,0.6);
+}
+.footer-icon-btn:hover::after { opacity: 1; }
+
+.footer-copy {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.18);
+}
+[data-theme="light"] .footer-copy { color: rgba(0,0,0,0.3); }
+[data-theme="light"] .footer-icon-btn { color: rgba(0,0,0,0.25); }
+[data-theme="light"] .footer-icon-btn:hover { color: #b5a800; text-shadow: 0 0 10px rgba(180,160,0,0.4); }
+</style>
+</head>
+<body>
+
+<canvas id="offscreen"></canvas>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+═══════════════════════════════════════ -->
+<header class="header">
+  <div class="logo-wrap">
+    <span class="logo-text syne">PIXEL<span class="hl">STUDIO</span></span>
+    <span class="version-badge">v5.0</span>
+  </div>
+  <div class="header-right">
+    <!-- Blinking dot = theme toggle -->
+    <div class="blink-dot-wrap" id="themeToggle" title="Toggle light / dark">
+      <div class="blink-dot"></div>
+    </div>
+    <button class="connect-btn">Connect</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     MAIN
+═══════════════════════════════════════ -->
+<main class="main">
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="image" onclick="setTab('image')">Image Tools</button>
+    <button class="tab-btn" data-tab="pdf"   onclick="setTab('pdf')">PDF</button>
+  </nav>
+
+  <!-- Main Drop Zone -->
+  <div id="mainDropzone" class="drop-zone" onclick="document.getElementById('mainFileInput').click()">
+    <input type="file" id="mainFileInput" class="hidden" style="display:none" multiple accept="image/*,application/pdf">
+    <div class="bg-pills" id="bg-pills"></div>
+    <i class="fa-solid fa-plus plus-icon"></i>
+    <h2>Input Stream</h2>
+    <p>Drop files or click to scan</p>
+  </div>
+
+  <!-- Main Queue -->
+  <div id="mainQueue">
+    <div class="queue-header">
+      <div>
+        <span class="queue-title">Active Queue</span>
+        <span class="queue-count" id="queueCount">0</span>
+      </div>
+      <button class="clear-btn" onclick="clearMainQueue()">Clear All</button>
+    </div>
+    <div id="mainFilesContainer"></div>
+  </div>
+
+  <!-- ── ROW 1: Performance & Editing ── -->
+  <div class="row-label">Row 1: Performance &amp; Editing</div>
+  <div class="tool-row">
+    <button class="tool-card" onclick="openCompressPanel()">
+      <div class="tc-icon" style="--ic:#3b82f6;--ig:rgba(59,130,246,0.15)">
+        <i class="fa-solid fa-compress"></i>
+      </div>
+      <div class="tc-info">
+        <div class="tc-name">Compress <span class="live-badge">Live</span></div>
+        <div class="tc-sub">Reduce file size</div>
+      </div>
+    </button>
+    <button class="tool-card" onclick="showToast('Quick Edit coming soon','warn','✂️')">
+      <div class="tc-icon" style="--ic:#10b981;--ig:rgba(16,185,129,0.15)">
+        <i class="fa-solid fa-crop-simple"></i>
+      </div>
+      <div class="tc-info">
+        <div class="tc-name">Quick Edit</div>
+        <div class="tc-sub">Crop &amp; Rotate</div>
+      </div>
+    </button>
+    <button class="tool-card" onclick="showToast('Convert coming soon','warn','🔄')">
+      <div class="tc-icon" style="--ic:#f59e0b;--ig:rgba(245,158,11,0.15)">
+        <i class="fa-solid fa-shuffle"></i>
+      </div>
+      <div class="tc-info">
+        <div class="tc-name">Convert</div>
+        <div class="tc-sub">Change format</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- ── ROW 2: Enhanced Features ── -->
+  <div class="row-label" style="margin-top:28px">Row 2: Enhanced Features</div>
+  <div class="tool-row">
+    <button class="tool-card" onclick="showToast('Upscale coming soon','warn','⚡')">
+      <div class="tc-icon" style="--ic:#a855f7;--ig:rgba(168,85,247,0.15)">
+        <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+      </div>
+      <div class="tc-info">
+        <div class="tc-name">Up-scale</div>
+        <div class="tc-sub">AI Enhancement</div>
+      </div>
+    </button>
+    <button class="tool-card" onclick="showToast('Metadata coming soon','warn','🏷️')">
+      <div class="tc-icon" style="--ic:#f43f5e;--ig:rgba(244,63,94,0.15)">
+        <i class="fa-solid fa-tags"></i>
+      </div>
+      <div class="tc-info">
+        <div class="tc-name">Metadata</div>
+        <div class="tc-sub">Exif cleanup</div>
+      </div>
+    </button>
+    <button class="tool-card" onclick="openPixelModal()">
+      <div class="tc-icon" style="--ic:#06b6d4;--ig:rgba(6,182,212,0.15)">
+        <i class="fa-solid fa-border-all"></i>
+      </div>
+      <div class="tc-info">
+        <div class="tc-name">Pixel Art <span class="live-badge">Live</span></div>
+        <div class="tc-sub">Voxelize image</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- ════════════════════════
+       COMPRESS PANEL
+  ════════════════════════ -->
+  <div id="compressPanel">
+    <div class="cp-header">
+      <div class="cp-title"><i class="fa-solid fa-compress"></i> Image Compressor</div>
+      <button class="cp-close" onclick="closeCompressPanel()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="cp-body">
+      <!-- Left: files -->
+      <div class="cp-files">
+        <div class="cp-dz" id="cpDz">
+          <input type="file" id="cpFileInput" accept="image/*" multiple onchange="onFilePick(event)">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          Drop images or click to upload
+        </div>
+        <div class="cards-list" id="cardsList"></div>
+        <div class="proc-bar">
+          <button class="action-btn btn-process" id="procAllBtn" onclick="processAll()" disabled>⚡ Process All Files</button>
+        </div>
+      </div>
+      <!-- Right: inspector -->
+      <div class="cp-inspector" id="inspBody">
+        <div class="insp-empty">🖼 Select a file to adjust settings</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-icons">
+    <a class="footer-icon-btn" href="https://github.com" target="_blank" title="GitHub">
+      <i class="fa-brands fa-github"></i>
+    </a>
+    <a class="footer-icon-btn" href="#" title="Docs">
+      <i class="fa-solid fa-book-open"></i>
+    </a>
+    <a class="footer-icon-btn" href="#" title="Share">
+      <i class="fa-solid fa-share-nodes"></i>
+    </a>
+    <a class="footer-icon-btn" href="#" title="Buy me a coffee">
+      <i class="fa-solid fa-mug-hot"></i>
+    </a>
+    <a class="footer-icon-btn" href="#" title="Settings">
+      <i class="fa-solid fa-gear"></i>
+    </a>
+  </div>
+  <div class="footer-copy">
+    &copy; 2024 PIXEL STUDIO PROFESSIONAL &nbsp;·&nbsp; V5.1 ENGINE &nbsp;·&nbsp; BY PROFET
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════
+     PIXEL ART MODAL
+═══════════════════════════════════════ -->
+<div id="pixelModal">
+  <div class="modal-panel">
+    <div class="canvas-side">
+      <div class="modal-top">
+        <div class="modal-title"><i class="fa-solid fa-border-all"></i>Pixel Art Generator</div>
+        <button class="modal-close" onclick="closePixelModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="canvas-wrapper">
+        <div class="canvas-ph" id="canvasPh">
+          <i class="fa-solid fa-image"></i>
+          <p>No image loaded</p>
+        </div>
+        <canvas id="pixelCanvas"></canvas>
+      </div>
+      <div class="modal-dz" id="modalDz" onclick="document.getElementById('modalFileInput').click()">
+        <input type="file" id="modalFileInput" style="display:none" accept="image/*">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        Click or drag image here
+      </div>
+      <div class="ba-btns">
+        <button class="ba-btn" id="btnBefore" onclick="showOriginal()">Original</button>
+        <button class="ba-btn active" id="btnAfter" onclick="showPixelated()">Pixelated</button>
+      </div>
+    </div>
+    <div class="controls-side">
+      <div>
+        <label class="ctrl-label">Block Size — <span id="blockVal">12</span>px</label>
+        <input type="range" id="blockSize" min="2" max="40" value="12" oninput="onBlockSlider()">
+        <div class="range-vals"><span>Fine</span><span>Chunky</span></div>
+      </div>
+      <div>
+        <label class="ctrl-label">Color Palette</label>
+        <div class="palette-grid" id="paletteGrid"></div>
+      </div>
+      <div>
+        <label class="ctrl-label">Effects</label>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="effect-toggle on" id="toggle-grid" onclick="toggleEffect('grid')">Grid Lines<div class="toggle-pill"></div></div>
+          <div class="effect-toggle" id="toggle-dither" onclick="toggleEffect('dither')">Dither<div class="toggle-pill"></div></div>
+          <div class="effect-toggle" id="toggle-contrast" onclick="toggleEffect('contrast')">Hi Contrast<div class="toggle-pill"></div></div>
+        </div>
+      </div>
+      <div>
+        <label class="ctrl-label">Output Format</label>
+        <div class="format-btns">
+          <button class="fmt-btn active" data-fmt="png" onclick="setPixelFormat('png')">PNG</button>
+          <button class="fmt-btn" data-fmt="jpg" onclick="setPixelFormat('jpg')">JPG</button>
+          <button class="fmt-btn" data-fmt="webp" onclick="setPixelFormat('webp')">WEBP</button>
+        </div>
+      </div>
+      <div>
+        <label class="ctrl-label">Output Scale — <span id="scaleVal">2</span>×</label>
+        <input type="range" id="outputScale" min="1" max="4" value="2" oninput="document.getElementById('scaleVal').textContent=this.value">
+      </div>
+      <button class="dl-btn" id="downloadBtn" disabled onclick="downloadPixelArt()">
+        <i class="fa-solid fa-download" style="margin-right:8px"></i>Download
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   THEME TOGGLE — blinking dot
+════════════════════════════════════════ */
+const root = document.documentElement;
+const savedTheme = localStorage.getItem('ps_theme') || 'dark';
+root.setAttribute('data-theme', savedTheme);
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('ps_theme', next);
+});
+
+/* ════════════════════════════════════════
+   BG PILLS
+════════════════════════════════════════ */
+(function() {
+  const bg = document.getElementById('bg-pills');
+  const icons = ['fa-image','fa-bolt','fa-code','fa-cube','fa-terminal','fa-wand-magic-sparkles','fa-layer-group'];
+  for (let i = 0; i < 60; i++) {
+    bg.innerHTML += `<i class="fa-solid ${icons[Math.floor(Math.random()*icons.length)]}"></i>`;
+  }
+})();
+
+/* ════════════════════════════════════════
+   TABS
+════════════════════════════════════════ */
+function setTab(type) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-tab="${type}"]`).classList.add('active');
+  showToast(`Tab: ${type}`, 'warn', '🗂️');
+}
+
+/* ════════════════════════════════════════
+   MAIN DROP ZONE
+════════════════════════════════════════ */
+const mainDz = document.getElementById('mainDropzone');
+const mainFI = document.getElementById('mainFileInput');
+let mainQueueTotal = 0;
+
+['dragenter','dragover'].forEach(n => mainDz.addEventListener(n, e => { e.preventDefault(); mainDz.classList.add('dragover'); }));
+['dragleave','drop'].forEach(n => mainDz.addEventListener(n, e => { e.preventDefault(); mainDz.classList.remove('dragover'); }));
+mainDz.addEventListener('drop', e => handleMainFiles(e.dataTransfer.files));
+mainFI.addEventListener('change', e => { handleMainFiles(e.target.files); e.target.value = ''; });
+
+function handleMainFiles(files) {
+  if (!files.length) return;
+  document.getElementById('mainQueue').style.display = 'block';
+  Array.from(files).forEach(file => {
+    mainQueueTotal++;
+    document.getElementById('queueCount').textContent = mainQueueTotal;
+    const row = document.createElement('div');
+    row.className = 'file-row';
+    row.innerHTML = `
+      <div class="file-ext">${file.name.split('.').pop().toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="file-name">${file.name}</div>
+        <div class="file-size">${fmtSize(file.size)}</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <button class="remove-btn" onclick="removeMainRow(this)"><i class="fa-solid fa-xmark"></i></button>`;
+    document.getElementById('mainFilesContainer').prepend(row);
+  });
+  showToast(`${files.length} file(s) added to queue`, 'success', '✅');
+}
+function removeMainRow(btn) {
+  btn.closest('.file-row').remove();
+  mainQueueTotal = Math.max(0, mainQueueTotal - 1);
+  document.getElementById('queueCount').textContent = mainQueueTotal;
+  if (!mainQueueTotal) document.getElementById('mainQueue').style.display = 'none';
+}
+function clearMainQueue() {
+  document.getElementById('mainFilesContainer').innerHTML = '';
+  mainQueueTotal = 0;
+  document.getElementById('queueCount').textContent = 0;
+  document.getElementById('mainQueue').style.display = 'none';
+}
+
+/* ════════════════════════════════════════
+   COMPRESS PANEL
+════════════════════════════════════════ */
+function openCompressPanel() {
+  document.getElementById('compressPanel').classList.add('open');
+  document.getElementById('compressPanel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeCompressPanel() {
+  document.getElementById('compressPanel').classList.remove('open');
+}
+
+// Compress drag onto cpDz
+const cpDz = document.getElementById('cpDz');
+cpDz.addEventListener('dragover', e => { e.preventDefault(); cpDz.classList.add('drag'); });
+cpDz.addEventListener('dragleave', () => cpDz.classList.remove('drag'));
+cpDz.addEventListener('drop', e => {
+  e.preventDefault(); cpDz.classList.remove('drag');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+  const dt = new DataTransfer();
+  files.forEach(f => dt.items.add(f));
+  onFilePick({target:{files:dt.files,value:''}});
+});
+
+/* ── Compression Engine (full port from mobile.html) ── */
+const FILES = [];
+let selId = null;
+let idCounter = 0;
+const PRESETS = [50, 100, 150, 200];
+const MIN_KB_LIMIT = 5;
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + 'B';
+  if (bytes < 1048576) return Math.round(bytes/1024) + 'KB';
+  return (bytes/1048576).toFixed(1) + 'MB';
+}
+
+function onFilePick(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(file => {
+    if (!file.type.startsWith('image/')) { showToast(`${file.name} is not an image.`, 'error', '🚫'); return; }
+    const id = ++idCounter;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const minBytes = calcMinBytes(img.naturalWidth, img.naturalHeight, file.type);
+        FILES.push({
+          id, name: file.name, origFile: file, origSize: file.size, type: 'image',
+          format: file.type.includes('png') ? 'PNG' : file.type.includes('webp') ? 'WEBP' : 'JPG',
+          targetKb: Math.max(MIN_KB_LIMIT+5, Math.round(file.size/1024/4)),
+          quality: 82, compress: true, status: 'idle',
+          dataUrl: ev.target.result,
+          naturalW: img.naturalWidth, naturalH: img.naturalHeight,
+          minKb: Math.ceil(minBytes/1024),
+          outputBlob: null, outputSize: null, outputUrl: null
+        });
+        render();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  if (e.target.value !== undefined) e.target.value = '';
+}
+
+function calcMinBytes(w, h, mime) {
+  return mime.includes('png') ? w*h*0.1 : w*h*0.01;
+}
+
+function render() { renderCards(); renderInspector(); updateButtons(); }
+
+function renderCards() {
+  const list = document.getElementById('cardsList');
+  list.innerHTML = '';
+  FILES.forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'fcard' + (selId === f.id ? ' sel' : '');
+    d.onclick = () => { selId = f.id; render(); };
+    const sc = f.status==='done'?'s-done':f.status==='processing'?'s-proc':f.status==='failed'?'s-fail':'s-idle';
+    const si = f.status==='done'?'✅':f.status==='processing'?'⏳':f.status==='failed'?'❌':'🔵';
+    const sl = f.status==='done'?'Done':f.status==='processing'?'Working…':f.status==='failed'?'Failed':'Ready';
+    d.innerHTML = `<div class="fcard-row">
+      <img class="fthumb" src="${f.dataUrl}" alt="">
+      <div class="finfo">
+        <div class="fname">${f.name}</div>
+        <div class="fmeta">${fmtSize(f.origSize)} · ${f.format}${f.outputSize?` → <strong style="color:var(--g-text)">${fmtSize(f.outputSize)}</strong>`:''}</div>
+      </div>
+      <div class="factions">
+        <span class="fstatus ${sc}">${si} ${sl}</span>
+        <button class="fdelete" onclick="removeFile(event,${f.id})">✕</button>
+      </div>
+    </div>`;
+    list.appendChild(d);
+  });
+}
+
+function renderInspector() {
+  const f = FILES.find(x => x.id === selId);
+  const body = document.getElementById('inspBody');
+  if (!f) { body.innerHTML = '<div class="insp-empty">🖼 Select a file above to configure</div>'; return; }
+
+  const estOut = f.outputSize || estimateOutput(f);
+  const pct = Math.round((1 - estOut/f.origSize) * 100);
+  const bc = pct>=30?'badge-green':pct>=0?'badge-amber':'badge-red';
+  const bi = pct>=30?'✅':pct>=0?'⚠️':'📈';
+  const bt = pct>0?`${bi} ${pct}% smaller`:pct===0?`↔️ Same size`:`📈 ${Math.abs(pct)}% larger`;
+  const activePreset = PRESETS.includes(f.targetKb) ? f.targetKb : null;
+
+  body.innerHTML = `
+    <div>
+      <label class="flabel">Size Preview</label>
+      <div class="prev-card">
+        <div class="prev-row">
+          <span class="prev-num">${fmtSize(f.origSize)}</span>
+          <span class="prev-arr">→</span>
+          <span class="prev-new" style="color:${pct>=0?'var(--g-text)':'var(--a-text)'}">${fmtSize(estOut)}</span>
+        </div>
+        <span class="prev-badge ${bc}" id="prevBadge">${bt}</span>
+        ${f.minKb>0?`<div style="font-size:9px;color:var(--text3);margin-top:6px;letter-spacing:0.5px">⚡ Min achievable: ~${f.minKb}KB</div>`:''}
+      </div>
+    </div>
+
+    <div>
+      <label class="flabel">Quick Presets</label>
+      <div class="presets" id="presetRow">
+        ${PRESETS.map(p=>`<button class="preset${activePreset===p?' active':''}" onclick="applyPreset(${p})">${p}KB</button>`).join('')}
+      </div>
+      <label class="flabel" style="margin-top:10px">Custom Target</label>
+      <div class="target-row">
+        <input class="target-input" type="number" id="targetInput" value="${f.targetKb}" min="${MIN_KB_LIMIT}" step="1" oninput="onTargetInput(this.value)">
+        <span class="target-unit">KB</span>
+      </div>
+      <input type="range" min="${Math.max(MIN_KB_LIMIT,f.minKb)}" max="${Math.round(f.origSize/1024)}" step="1" value="${f.targetKb}" id="targetSlider" style="margin-top:8px" oninput="onSliderInput(this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px;letter-spacing:0.5px">
+        <span>${Math.max(MIN_KB_LIMIT,f.minKb)}KB</span><span>${Math.round(f.origSize/1024)}KB</span>
+      </div>
+    </div>
+
+    <div class="c-sep"></div>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <label class="flabel" style="margin:0">Quality</label>
+        <span class="quality-val" id="qualVal">${f.quality}%</span>
+      </div>
+      <input type="range" min="1" max="100" step="1" value="${f.quality}" id="qualSlider" oninput="onQualInput(this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px"><span>1%</span><span>100%</span></div>
+    </div>
+
+    <div>
+      <label class="flabel">Output Format</label>
+      <div class="fmt-pills" id="fmtPills">
+        ${['JPG','PNG','WEBP'].map(fmt=>`<div class="fpill${f.format===fmt?' active':''}" onclick="setFormat('${fmt}',this)">${fmt}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="c-sep"></div>
+
+    <div class="togrow">
+      <span class="toglbl">Compress to target size</span>
+      <div class="tog${f.compress?' on':''}" onclick="toggleCompress(this)"></div>
+    </div>
+
+    <div class="c-sep"></div>
+
+    ${f.status==='done'&&f.outputUrl
+      ? `<a class="action-btn btn-download" style="padding:11px" href="${f.outputUrl}" download="${f.name.replace(/(\.[^.]+)$/,'_compressed$1')}">💾 Download ${fmtSize(f.outputSize)}</a>`
+      : `<button class="action-btn btn-process" onclick="processSingle(${f.id})" ${f.status==='processing'?'disabled':''}>
+           ${f.status==='processing'?'⏳ Processing…':'⚡ Compress This File'}
+         </button>`
+    }`;
+}
+
+function estimateOutput(f) {
+  const targetBytes = f.targetKb * 1024;
+  if (f.compress) return Math.min(f.origSize, Math.max(f.minKb*1024, targetBytes));
+  const q = f.quality/100;
+  if (f.format === 'PNG') return Math.round(f.origSize*0.85);
+  return Math.round(f.origSize*q*0.9);
+}
+
+function refreshPreview() {
+  const f = FILES.find(x => x.id === selId); if (!f) return;
+  const estOut = estimateOutput(f);
+  const pct = Math.round((1 - estOut/f.origSize)*100);
+  const pn = document.querySelector('.prev-new');
+  const pb = document.getElementById('prevBadge');
+  if (pn) { pn.textContent = fmtSize(estOut); pn.style.color = pct>=0?'var(--g-text)':'var(--a-text)'; }
+  if (pb) {
+    const bc = pct>=30?'badge-green':pct>=0?'badge-amber':'badge-red';
+    const bi = pct>=30?'✅':pct>=0?'⚠️':'📈';
+    const txt = pct>0?`${bi} ${pct}% smaller`:pct===0?`↔️ Same size`:`📈 ${Math.abs(pct)}% larger`;
+    pb.className = 'prev-badge '+bc;
+    pb.textContent = txt;
+  }
+}
+
+function updateButtons() {
+  const has = FILES.some(f => f.status === 'idle');
+  document.getElementById('procAllBtn').disabled = !has;
+}
+
+function removeFile(e, id) {
+  e.stopPropagation();
+  const i = FILES.findIndex(f => f.id === id);
+  if (i > -1) { if (FILES[i].outputUrl) URL.revokeObjectURL(FILES[i].outputUrl); FILES.splice(i,1); }
+  if (selId === id) selId = null;
+  render();
+}
+
+async function compressImage(f) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.getElementById('offscreen');
+      canvas.width = f.naturalW; canvas.height = f.naturalH;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,f.naturalW,f.naturalH);
+      ctx.drawImage(img,0,0,f.naturalW,f.naturalH);
+      const mimeMap = {JPG:'image/jpeg',PNG:'image/png',WEBP:'image/webp'};
+      const mime = mimeMap[f.format] || 'image/jpeg';
+      const targetBytes = f.targetKb * 1024;
+      const minBytes = f.minKb * 1024;
+
+      if (!f.compress || f.format === 'PNG') {
+        canvas.toBlob(blob => {
+          if (!blob) { reject(new Error('toBlob failed')); return; }
+          resolve(blob);
+        }, mime, f.quality/100);
+        return;
+      }
+
+      let lo=0.01, hi=1.0, bestBlob=null, iter=0;
+      function tryQ(q) {
+        canvas.toBlob(blob => {
+          if (!blob) { reject(new Error('toBlob failed')); return; }
+          iter++;
+          if (!bestBlob || Math.abs(blob.size-targetBytes) < Math.abs(bestBlob.size-targetBytes)) bestBlob = blob;
+          if (Math.abs(blob.size-targetBytes) < targetBytes*0.06 || iter > 14) {
+            if (bestBlob.size < minBytes*0.7) { reject(new Error('BELOW_MIN')); return; }
+            resolve(bestBlob); return;
+          }
+          if (blob.size > targetBytes) hi=q; else lo=q;
+          tryQ((lo+hi)/2);
+        }, mime, q);
+      }
+      tryQ(f.quality/100);
+    };
+    img.onerror = reject;
+    img.src = f.dataUrl;
+  });
+}
+
+async function processSingle(id) {
+  const f = FILES.find(x => x.id === id);
+  if (!f || f.status === 'processing') return;
+  if (f.targetKb < f.minKb) {
+    showToast(`🚫 Can't compress "${f.name}" to ${f.targetKb}KB — minimum is ~${f.minKb}KB.`, 'error', '🚫');
+    return;
+  }
+  f.status = 'processing'; render();
+  try {
+    const blob = await compressImage(f);
+    if (f.outputUrl) URL.revokeObjectURL(f.outputUrl);
+    f.outputBlob = blob; f.outputSize = blob.size;
+    f.outputUrl = URL.createObjectURL(blob);
+    f.status = 'done';
+    const saved = Math.round((1 - blob.size/f.origSize)*100);
+    showToast(`✅ "${f.name}" — ${fmtSize(f.origSize)} → ${fmtSize(blob.size)} (${saved}% smaller)`, 'success', '✅');
+  } catch(err) {
+    f.status = 'failed';
+    if (err.message === 'BELOW_MIN') showToast(`😔 Target too small for "${f.name}". Try ${f.minKb+5}KB+.`, 'error', '🚫');
+    else showToast(`❌ Error compressing "${f.name}". Try different format/target.`, 'error', '❌');
+  }
+  render();
+}
+
+async function processAll() {
+  const idle = FILES.filter(f => f.status === 'idle');
+  if (!idle.length) return;
+  for (const f of idle) await processSingle(f.id);
+}
+
+function onTargetInput(v) {
+  const f = FILES.find(x => x.id === selId); if (!f) return;
+  f.targetKb = Math.max(MIN_KB_LIMIT, parseInt(v)||MIN_KB_LIMIT);
+  const sl = document.getElementById('targetSlider');
+  if (sl) sl.value = f.targetKb;
+  clearActivePresets(); refreshPreview();
+}
+function onSliderInput(v) {
+  const f = FILES.find(x => x.id === selId); if (!f) return;
+  f.targetKb = parseInt(v);
+  const ti = document.getElementById('targetInput');
+  if (ti) ti.value = v;
+  clearActivePresets();
+  if (PRESETS.includes(parseInt(v))) document.querySelectorAll('.preset').forEach(p => { if(parseInt(p.textContent)===parseInt(v)) p.classList.add('active'); });
+  refreshPreview();
+}
+function clearActivePresets() { document.querySelectorAll('.preset').forEach(p => p.classList.remove('active')); }
+function applyPreset(kb) {
+  const f = FILES.find(x => x.id === selId); if (!f) return;
+  if (kb < f.minKb) { showToast(`⚠️ ${kb}KB is below minimum (~${f.minKb}KB) for this image.`, 'warn', '⚠️'); return; }
+  f.targetKb = kb;
+  const ti = document.getElementById('targetInput');
+  const sl = document.getElementById('targetSlider');
+  if (ti) ti.value = kb; if (sl) sl.value = kb;
+  clearActivePresets();
+  document.querySelectorAll('.preset').forEach(p => { if(parseInt(p.textContent)===kb) p.classList.add('active'); });
+  refreshPreview();
+}
+function onQualInput(v) {
+  const f = FILES.find(x => x.id === selId); if (!f) return;
+  f.quality = parseInt(v);
+  const qv = document.getElementById('qualVal');
+  if (qv) qv.textContent = v + '%';
+  refreshPreview();
+}
+function setFormat(fmt, el) {
+  const f = FILES.find(x => x.id === selId); if (!f) return;
+  f.format = fmt;
+  document.querySelectorAll('.fpill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  refreshPreview();
+}
+function toggleCompress(el) {
+  const f = FILES.find(x => x.id === selId); if (!f) return;
+  el.classList.toggle('on');
+  f.compress = el.classList.contains('on');
+  refreshPreview();
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function showToast(msg, type='error', icon='⚠️') {
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-text">${msg}</span><button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
+  wrap.appendChild(t);
+  setTimeout(() => { if (t.parentElement) t.remove(); }, 4500);
+}
+
+/* ════════════════════════════════════════
+   PIXEL ART ENGINE
+════════════════════════════════════════ */
+let origImg = null, pixelFormat = 'png';
+let pxEffects = { grid: true, dither: false, contrast: false };
+let activePalette = null;
+
+const PALETTES = [
+  null,
+  ['#264653','#2a9d8f','#e9c46a','#f4a261','#e76f51'],
+  ['#03045e','#0077b6','#00b4d8','#90e0ef','#caf0f8'],
+  ['#d62828','#f77f00','#fcbf49','#eae2b7','#003049'],
+  ['#6a0572','#ab83a1','#f6c9e0','#ffdee9','#fff0f3'],
+  ['#212529','#343a40','#495057','#adb5bd','#f8f9fa'],
+  ['#ff006e','#fb5607','#ffbe0b','#8338ec','#3a86ff'],
+  ['#2d6a4f','#40916c','#52b788','#74c69d','#d8f3dc'],
+  ['#e8ff47','#b5c221','#7a8416','#3d420b','#1a1c05'],
+];
+const palBg = [
+  'linear-gradient(135deg,#e879f9,#60a5fa,#34d399,#fbbf24)',
+  '#e9c46a','#00b4d8','#f77f00','#f6c9e0','#adb5bd','#ffbe0b','#52b788','#e8ff47'
+];
+const palLabels = ['Auto','Earthy','Ocean','Warm','Pastels','Mono','Neon','Forest','v5 Acid'];
+
+(function buildPalette() {
+  const grid = document.getElementById('paletteGrid');
+  PALETTES.forEach((pal, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (i===0?' active':'');
+    sw.title = palLabels[i];
+    sw.style.background = palBg[i];
+    sw.onclick = () => {
+      document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      activePalette = pal;
+      renderPixelArt();
+    };
+    grid.appendChild(sw);
+  });
+})();
+
+function openPixelModal() { document.getElementById('pixelModal').classList.add('open'); }
+function closePixelModal() { document.getElementById('pixelModal').classList.remove('open'); }
+document.getElementById('pixelModal').addEventListener('click', function(e){ if(e.target===this) closePixelModal(); });
+
+document.getElementById('modalFileInput').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      origImg = img;
+      document.getElementById('canvasPh').style.display = 'none';
+      document.getElementById('modalDz').style.display = 'none';
+      document.getElementById('downloadBtn').disabled = false;
+      renderPixelArt();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  showToast('Image loaded — rendering…', 'success', '🎨');
+});
+
+const mDz = document.getElementById('modalDz');
+mDz.addEventListener('dragover', e => { e.preventDefault(); mDz.style.borderColor='var(--accent)'; });
+mDz.addEventListener('dragleave', () => mDz.style.borderColor='');
+mDz.addEventListener('drop', e => {
+  e.preventDefault(); mDz.style.borderColor='';
+  const file = e.dataTransfer.files[0];
+  if (file?.type.startsWith('image/')) {
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('modalFileInput').files = dt.files;
+    document.getElementById('modalFileInput').dispatchEvent(new Event('change'));
+  }
+});
+
+function onBlockSlider() {
+  document.getElementById('blockVal').textContent = document.getElementById('blockSize').value;
+  renderPixelArt();
+}
+function toggleEffect(key) {
+  pxEffects[key] = !pxEffects[key];
+  document.getElementById(`toggle-${key}`).classList.toggle('on', pxEffects[key]);
+  renderPixelArt();
+}
+function setPixelFormat(fmt) {
+  pixelFormat = fmt;
+  document.querySelectorAll('.fmt-btn').forEach(b => b.classList.toggle('active', b.dataset.fmt===fmt));
+}
+function showOriginal() {
+  if (!origImg) return;
+  const canvas = document.getElementById('pixelCanvas');
+  canvas.width = origImg.width; canvas.height = origImg.height;
+  canvas.getContext('2d').drawImage(origImg,0,0);
+  canvas.style.display = 'block';
+  document.getElementById('btnBefore').classList.add('active');
+  document.getElementById('btnAfter').classList.remove('active');
+}
+function showPixelated() {
+  document.getElementById('btnAfter').classList.add('active');
+  document.getElementById('btnBefore').classList.remove('active');
+  renderPixelArt();
+}
+
+function renderPixelArt() {
+  if (!origImg) return;
+  const blockSize = parseInt(document.getElementById('blockSize').value);
+  const canvas = document.getElementById('pixelCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = origImg.naturalWidth || origImg.width;
+  const h = origImg.naturalHeight || origImg.height;
+  const cols = Math.ceil(w/blockSize), rows = Math.ceil(h/blockSize);
+
+  const off = document.createElement('canvas');
+  off.width = cols; off.height = rows;
+  const octx = off.getContext('2d');
+  octx.drawImage(origImg,0,0,cols,rows);
+  let id = octx.getImageData(0,0,cols,rows), d = id.data;
+
+  if (pxEffects.contrast) {
+    for (let i=0;i<d.length;i+=4)
+      for (let c=0;c<3;c++) d[i+c]=d[i+c]>128?Math.min(255,d[i+c]+40):Math.max(0,d[i+c]-40);
+  }
+  if (pxEffects.dither) {
+    for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) {
+      const idx=(y*cols+x)*4;
+      for (let c=0;c<3;c++) {
+        const old=d[idx+c],nv=old>128?255:0,err=old-nv;
+        d[idx+c]=nv;
+        if(x+1<cols) d[idx+4+c]=Math.min(255,Math.max(0,d[idx+4+c]+err*7/16));
+        if(y+1<rows){
+          if(x>0) d[((y+1)*cols+(x-1))*4+c]=Math.min(255,Math.max(0,d[((y+1)*cols+(x-1))*4+c]+err*3/16));
+          d[((y+1)*cols+x)*4+c]=Math.min(255,Math.max(0,d[((y+1)*cols+x)*4+c]+err*5/16));
+          if(x+1<cols) d[((y+1)*cols+(x+1))*4+c]=Math.min(255,Math.max(0,d[((y+1)*cols+(x+1))*4+c]+err*1/16));
+        }
+      }
+    }
+  }
+  octx.putImageData(id,0,0);
+
+  canvas.width=cols*blockSize; canvas.height=rows*blockSize;
+  ctx.imageSmoothingEnabled=false;
+
+  for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) {
+    const px=octx.getImageData(x,y,1,1).data;
+    let [r,g,b]=[px[0],px[1],px[2]];
+    if (activePalette) [r,g,b]=closestColor(r,g,b,activePalette);
+    ctx.fillStyle=`rgb(${r},${g},${b})`;
+    ctx.fillRect(x*blockSize,y*blockSize,blockSize,blockSize);
+  }
+  if (pxEffects.grid && blockSize>=4) {
+    ctx.strokeStyle='rgba(0,0,0,0.14)'; ctx.lineWidth=0.5;
+    for(let x=0;x<=cols;x++){ctx.beginPath();ctx.moveTo(x*blockSize,0);ctx.lineTo(x*blockSize,canvas.height);ctx.stroke();}
+    for(let y=0;y<=rows;y++){ctx.beginPath();ctx.moveTo(0,y*blockSize);ctx.lineTo(canvas.width,y*blockSize);ctx.stroke();}
+  }
+  canvas.style.display='block';
+}
+
+function closestColor(r,g,b,pal) {
+  let best=null,dist=Infinity;
+  pal.forEach(hex=>{
+    const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if(!m)return;
+    const [pr,pg,pb]=[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)];
+    const d=(r-pr)**2+(g-pg)**2+(b-pb)**2;
+    if(d<dist){dist=d;best=[pr,pg,pb];}
+  });
+  return best||[r,g,b];
+}
+
+function downloadPixelArt() {
+  const canvas = document.getElementById('pixelCanvas'); if (!origImg) return;
+  const scale = parseInt(document.getElementById('outputScale').value);
+  const out = document.createElement('canvas');
+  out.width=canvas.width*scale; out.height=canvas.height*scale;
+  const octx=out.getContext('2d'); octx.imageSmoothingEnabled=false;
+  octx.drawImage(canvas,0,0,out.width,out.height);
+  const mime={png:'image/png',jpg:'image/jpeg',webp:'image/webp'}[pixelFormat]||'image/png';
+  const a=document.createElement('a');
+  a.href=out.toDataURL(mime,0.92);
+  a.download=`pixel_art_${Date.now()}.${pixelFormat}`;
+  a.click();
+  showToast('Download started!','success','💾');
+}
+</script>
+</body>
+</html>
